@@ -15,6 +15,24 @@ claude:  [reads the format spec and your device's own catalogue]
          [builds it, runs three validators, reports what they said]
 ```
 
+## See it working
+
+Two real sessions, unedited.
+
+**Building a Hendrix patch with a wah on the expression pedal.** The wah wiring
+was not guessed — every wah in the corpus is wired the same way, so it went and
+looked, then copied it: `Pedal` on EXP 1, bypass on the toe switch, so rocking
+past toe-down engages it.
+
+![Building a patch from scratch](docs/images/example-build-a-patch.png)
+
+**Re-voicing the same patch for a different guitar.** A Telecaster bridge pickup
+is low-output, thin and bright; a bridge humbucker is the opposite in every way
+that matters, so nearly every control moves the other way — and the low shelf
+*inverts*.
+
+![Re-voicing a patch for another guitar](docs/images/example-revoice-for-another-guitar.png)
+
 > ### Back up your presets first
 >
 > A malformed preset can make the unit fault — watchdog restart, splash screen,

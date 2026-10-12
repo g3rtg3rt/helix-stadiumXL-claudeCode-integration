@@ -3,4 +3,7 @@
 # config, so a default clone would rewrite files to CRLF. Pin LF per-repo so
 # nobody has to remember a clone flag.
 * text=auto eol=lf
+
+# Never line-ending-translate these.
 *.hsp binary
+*.png binary
