@@ -1,0 +1,13 @@
+# Your own presets. Required to run anything, never committed: factory presets
+# are Line 6 content, and yours are yours.
+corpus/*
+!corpus/.gitkeep
+!corpus/README.md
+
+# Build output
+out/
+
+# Editors / OS
+node_modules/
+.DS_Store
+Thumbs.db

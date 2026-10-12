@@ -1,0 +1,6 @@
+# Everything here is shell-adjacent or shell script and is run on Windows,
+# macOS and Linux. Git for Windows sets core.autocrlf=true in its SYSTEM
+# config, so a default clone would rewrite files to CRLF. Pin LF per-repo so
+# nobody has to remember a clone flag.
+* text=auto eol=lf
+*.hsp binary

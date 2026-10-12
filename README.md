@@ -1,0 +1,131 @@
+# Helix patch building with Claude Code
+
+Build Line 6 Helix presets by describing them, instead of clicking through
+menus. Spend the time playing.
+
+This is the `.hsp` preset format, reverse-engineered and proven on hardware,
+plus the tooling and the hard-won rules — packaged so **Claude Code** can pick
+it up and build patches for you competently rather than plausibly.
+
+```
+you:     Clean Vox-ish patch, three snapshots, chorus on the chorus,
+         and tell me which values you're confident about.
+
+claude:  [reads the format spec and your device's own catalogue]
+         [builds it, runs three validators, reports what they said]
+```
+
+> ### Back up your presets first
+>
+> A malformed preset can make the unit fault — watchdog restart, splash screen,
+> no full boot, about ten seconds after the preset becomes active. It recovers,
+> but you have to find and delete the offending preset. This toolkit exists
+> precisely to prevent that class of bug (see
+> [the float rule](docs/GOTCHAS.md#1-float-formatting--this-one-faults-the-device)),
+> and it is not a guarantee. Back up, and play a patch before trusting it.
+
+---
+
+## Start here
+
+**[docs/SETUP.md](docs/SETUP.md)** — twenty minutes, most of it exporting
+presets.
+
+```bash
+git clone https://github.com/g3rtg3rt/helix-stadiumXL-claudeCode-integration
+cd helix-stadiumXL-claudeCode-integration
+
+# export your own presets from HX Edit into corpus/   <- required, see SETUP.md
+node tools/mine-catalogue.js                           # catalogue for YOUR device
+node examples/build-examples.js out                    # three example patches
+node tools/validate-presets.js corpus out              # check them
+
+claude                                                 # and you're working
+```
+
+No dependencies. No npm install. Node 18+.
+
+## Why you have to supply your own presets
+
+Nothing ships in `corpus/`, and this is the one step you cannot skip.
+
+The firmware tells a float from an integer **by whether the JSON text has a
+decimal point**. `JSON.stringify` writes `0.0` as `0`, handing a float-typed
+parameter an integer — and the unit faults. But `"value": 0` is *correct* under
+`Mic` and *fatal* under `Level`, so no blanket rule works.
+
+So the writer never guesses. It learns the correct format per model+parameter
+from presets **your device wrote**. That also means the toolkit adapts to your
+device and firmware instead of being pinned to someone else's.
+
+Factory presets are Line 6's content and are not redistributed here. Yours stay
+yours — `corpus/` is gitignored.
+
+## What's in the box
+
+| | |
+|---|---|
+| **[docs/FORMAT.md](docs/FORMAT.md)** | the container and data model: block ids, snapshots, controllers, stereo routing, the wah wiring worked through |
+| **[docs/GOTCHAS.md](docs/GOTCHAS.md)** | the traps, ordered by what they cost you. Read before your first patch |
+| **[docs/PATCH-DESIGN.md](docs/PATCH-DESIGN.md)** | making a patch that works *musically*: the mono-block trap, level architecture, why your pickup changes the voicing |
+| **[docs/MODEL-CATALOGUE.md](docs/MODEL-CATALOGUE.md)** | 239 models with observed parameter ranges. Regenerate for your own device |
+| **[CLAUDE.md](CLAUDE.md)** | the operating manual Claude Code reads automatically |
+| `lib/` | the builders (71 exports, 13 amps), the device-safe JSON writer, the corpus resolver |
+| `tools/` | three validators, a device round-trip diff, the catalogue miner, a snapshot-coverage fixer |
+| `examples/` | three patches that have been played on hardware, each teaching a different thing |
+
+### The examples, in reading order
+
+| | Teaches |
+|---|---|
+| Single Amp | the basics: one amp, snapshots, footswitches, per-snapshot values |
+| High Gain | an amp whose parameter *names* break the usual pattern |
+| Stereo Dual Amp | two amps hard-panned, and the mono-block trap that silently kills stereo |
+
+Their parameter values are known-good on real hardware rather than plausible,
+which matters — an invented value ranges from inaudible to a device fault.
+
+## Using the knowledge without the toolkit
+
+The four documents are self-contained. Paste them into any Claude session, or
+drop them beside your own project with a `CLAUDE.md` pointing at them, if you
+want to write your own tooling in another language.
+
+## Scope and honesty
+
+- Derived from **one device on one firmware**: Helix Stadium XL,
+  `device_id 2490368`, `device_version 318899516`. The container and data model
+  are likely shared across the Helix family; **model availability is not**.
+- The validators deliberately **check your corpus against their own rules
+  first**, so a rule that does not match your firmware shows up as reference
+  files failing rather than as a false pass on your output. If that happens,
+  please open an issue with the output — that is the most useful bug report
+  this project can get.
+- Everything here is observed behaviour, not vendor documentation. Where a
+  claim rests on a thin sample, the docs say so.
+- Patch *voicings* are a matter of taste and rooms. The tooling makes the file
+  correct; it cannot make it sound how you want.
+
+## Contributing
+
+Most valuable, roughly in order:
+
+1. **Other Helix models.** If the format holds on a Floor, LT, Rack or HX Stomp,
+   say so — and if it does not, that is more valuable still.
+2. **Models missing from the catalogue**, with the parameter set from a real
+   export.
+3. **Gotchas.** If something cost you an afternoon, it belongs in
+   `GOTCHAS.md` with what it cost.
+4. **Amp builders** for models not yet covered, copied from a real export rather
+   than inferred.
+
+Please do not include factory presets or their contents in a pull request.
+
+## Licence and affiliation
+
+MIT — see [LICENSE](LICENSE).
+
+**Unofficial.** Not affiliated with, endorsed by, or supported by Line 6 or
+Yamaha. "Line 6", "Helix" and "HX" are their trademarks, used here only to say
+what this works with. Nothing in this repository contains or redistributes Line
+6 preset content, firmware or software. Use at your own risk.
