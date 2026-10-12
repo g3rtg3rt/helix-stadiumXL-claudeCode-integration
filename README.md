@@ -141,7 +141,14 @@ Please do not include factory presets or their contents in a pull request.
 
 ## Licence and affiliation
 
-MIT — see [LICENSE](LICENSE).
+**GPL-3.0** — see [LICENSE](LICENSE). Use it, change it, share it. If you
+distribute something built on it, that has to be free software too, so
+improvements come back to everyone rather than disappearing into a fork.
+
+**Patches you make with it are yours.** The licence covers this toolkit, not its
+output. A `.hsp` you generate is your own work — sell it, keep it private, do
+whatever you like with it. This catches people out, so to be explicit: running
+the tool does not make your presets GPL.
 
 **Unofficial.** Not affiliated with, endorsed by, or supported by Line 6 or
 Yamaha. "Line 6", "Helix" and "HX" are their trademarks, used here only to say
