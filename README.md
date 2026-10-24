@@ -65,6 +65,7 @@ cd helix-stadiumXL-claudeCode-integration
 node tools/mine-catalogue.js                           # catalogue for YOUR device
 node examples/build-examples.js out                    # three example patches
 node tools/validate-presets.js corpus out              # check them
+node tools/check-rules.js corpus out                   # and the device's own rules
 
 claude                                                 # and you're working
 ```
@@ -97,7 +98,7 @@ yours — `corpus/` is gitignored.
 | **[docs/MODEL-CATALOGUE.md](docs/MODEL-CATALOGUE.md)** | 239 models with observed parameter ranges. Regenerate for your own device |
 | **[CLAUDE.md](CLAUDE.md)** | the operating manual Claude Code reads automatically |
 | `lib/` | the builders (71 exports, 13 amps), the device-safe JSON writer, the corpus resolver |
-| `tools/` | three validators, a device round-trip diff, a **firmware delta check**, the catalogue miner, a snapshot-coverage fixer |
+| `tools/` | four validators, a device round-trip diff, a **firmware delta check**, the catalogue miner, a snapshot-coverage fixer |
 | `examples/` | three patches that have been played on hardware, each teaching a different thing |
 
 ### The examples, in reading order
@@ -119,16 +120,24 @@ want to write your own tooling in another language.
 
 ## Scope and honesty
 
-- Derived from **one device on one firmware**: Helix Stadium XL,
-  `device_id 2490368`, `device_version 318899516`. The container and data model
-  are likely shared across the Helix family; **model availability is not**.
+- Derived from **one device**: Helix Stadium XL, `device_id 2490368`, on
+  firmware 1.3.2.1340 and 1.4.1.1343. The container and data model are likely
+  shared across the Helix family; **model availability is not**.
+- **Two kinds of claim live in these docs, and they are labelled.** The file
+  format itself — the container, block ids, how parameters and snapshots are
+  written — is reverse-engineered from exports and confirmed by loading
+  generated files on hardware. The *behaviour* of blocks, paths, pedals and
+  limits is largely quoted from the Line 6 owner's manual and release notes,
+  and quoted claims say so. Where the two disagreed, the manual won and the
+  docs were corrected.
 - The validators deliberately **check your corpus against their own rules
   first**, so a rule that does not match your firmware shows up as reference
   files failing rather than as a false pass on your output. If that happens,
   please open an issue with the output — that is the most useful bug report
   this project can get.
-- Everything here is observed behaviour, not vendor documentation. Where a
-  claim rests on a thin sample, the docs say so.
+- Where a claim rests on a thin sample, the docs say so — including the two
+  places where a pattern was extrapolated across a model family that was not
+  fully observed.
 - Patch *voicings* are a matter of taste and rooms. The tooling makes the file
   correct; it cannot make it sound how you want.
 

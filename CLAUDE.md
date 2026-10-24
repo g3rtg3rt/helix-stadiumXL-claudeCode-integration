@@ -47,6 +47,20 @@ model+parameter from the user's own corpus. That is why a corpus is mandatory.
    levels to a measured value for *that amp* from the corpus, never a generic
    number. `docs/GOTCHAS.md` has a table.
 
+## Two sources of truth, in this order
+
+1. **The Line 6 owner's manual and release notes** for anything about what a
+   block or path *does* — mono/stereo behaviour, block limits, what a snapshot
+   stores, how pedals are assigned, what a parameter means. These are at
+   `manuals.line6.com` and `kb.line6.com`. Prefer them over inference.
+2. **The user's corpus** for anything about how the file is *written* — which
+   parameters a model has, their observed ranges, and float-vs-int formatting.
+   The manual does not document the file format at all.
+
+Do not infer from the corpus something the manual states, and do not assume the
+manual tells you how a value is rendered in JSON. When the two disagree about
+behaviour, the manual is right and the docs here should be corrected.
+
 ## After a firmware update
 
 Read the vendor's release notes for that version first, then run
@@ -54,7 +68,11 @@ Read the vendor's release notes for that version first, then run
 said. The tool diffs files, so it reports only on models the sample uses: if the
 user re-exported presets they already had, it **cannot** see models the update
 added, and saying "no new models" on that basis is wrong. New models need a
-scratch preset exported per model before anything can be built with them. A firmware update can add parameters
+scratch preset exported per model before anything can be built with them.
+
+If an amp offers several channels or eras, that is a `Channel` **parameter** on
+one model, not several models, and it is snapshot-controllable — so one export
+covers all of them. A firmware update can add parameters
 to existing models, and can in principle change how numbers are rendered — which
 is the failure that faults the unit. Also update the `FIRMWARE` constant in
 `lib/builders.js`; `device_version` is computed from it.

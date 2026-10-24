@@ -8,6 +8,26 @@ at rehearsal, and being told what was wrong.
 
 ## Mono blocks destroy stereo, silently
 
+The manual states the mechanism: "All Amp, Preamp, Poly effects, and Clone
+blocks are mono-only, so any stereo signal sent into these block types will be
+collapsed to mono," and "adding a mono effect block will collapse any preceding
+stereo signal on the same Path to mono." **Poly effects being mono-only is easy
+to miss** — a Poly Sustain or Feedbacker late in a chain collapses everything
+upstream of it.
+
+A single-slot **cab** block does it too: one cab sums its input to mono, two
+cabs pass stereo through.
+
+But not every one of these is a bug. A mono source through one cab puts
+identical audio on left and right, so a mono block after it loses nothing, and
+factory presets put mono EQs and volume blocks after stereo delays constantly.
+What is almost always a bug is a mono block downstream of **deliberate hard
+panning** — a dual cab with its slots at Left 100 / Right 100, or a Merge with
+A and B panned apart. There the stereo image is the point of the patch.
+`tools/check-rules.js` flags that case specifically, and stays quiet about the
+rest.
+
+
 **A mono block downstream of the cab — or of the Join — sums hard-panned stereo
 back to centre.**
 
@@ -37,6 +57,48 @@ Reverb, delay and EQ are **linear**, so a gain block before them sounds
 identical to one after. Useful when the only free position is upstream — and
 sitting ahead of a reverb has a real advantage: a snapshot change does not
 retroactively rescale a tail that is still ringing, so transitions do not jump.
+
+## Hype, before you reach for an EQ
+
+Agoura amps have a `Hype` parameter that HD2 amps do not, and it is easy to
+spend an afternoon doing with an EQ block what it does in one control. The
+manual's description: increasing it "may subtly or dramatically adjust various
+behind-the-scenes parameters to make the amp sound and feel smoother, fuller,
+punchier, tighter, and/or more forgiving, but at the expense of accuracy."
+
+So when a patch is harsh on a PA, or a part needs to sit back without losing
+its character, try `Hype` first. An EQ block is the right tool for a specific
+offending frequency; `Hype` is the right tool for "this is too much like the
+real amp and I want it to behave."
+
+## Master is not a level control
+
+On an amp block, `Master` models the real amp's master volume, and the manual
+is explicit that it is "highly interactive with all other parameters — the
+lower the Master is set, the less effect the other controls will have," with
+higher settings giving "more power tube type saturation."
+
+Two consequences:
+
+- **Amp models ship with Master high on purpose**, because that is the real
+  amp's sweet spot. Turning it down to tame the volume also flattens the
+  tonestack and removes the power-amp character. Use the block's `Level`
+  (Agoura) or a gain block after the cab instead.
+- **Changing Master changes where the amp breaks up.** If a snapshot starts
+  distorting after you raise Master, that is the model working correctly, not a
+  level bug — fix it at the drive stage, not by undoing the Master.
+
+## Spend DSP across both paths
+
+`flow[0]` and `flow[1]` are separate processors. The manual's advice, which is
+also the fix for most "DSP full" messages: put pre-effects, amp and cab on
+Path 1, set its output block to `Path 2A`, and put the post-effects on Path 2.
+Everything on one path uses half the device.
+
+Cheap blocks: Cab, EQ, Dynamics, Volume/Pan, Send/Return. Expensive: Amp,
+Clone, Reverb, Poly. A stereo effect costs roughly twice its mono version,
+which is a real argument for mono effects *before* the amp — they are summed
+to mono there anyway.
 
 ## Keep the three level jobs apart
 
@@ -152,6 +214,18 @@ may fill them in:
   from somewhere else.
 - Changing a solo boost means changing it in **every** snapshot that has one.
   Two solo variants drift apart otherwise.
+
+## Two cabs, panned apart
+
+The vendor endorses the technique this toolkit uses to make a single-amp patch
+stereo. From the Cab parameters: "For stereo setups, the Cab block can sound
+much wider if the two sides are panned opposite of one another (Left 100 and
+Right 100)," with the matching warning to "keep this set to Center when using a
+single Cab or when mono output is desired."
+
+The `Cab > Cab Link` option exists for exactly this: same cab on both sides,
+different mics — or the same mic at different positions or distances. Two mic
+images of one amp, so the amp voicing is untouched.
 
 ## Mono compatibility
 

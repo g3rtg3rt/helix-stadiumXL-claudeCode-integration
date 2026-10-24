@@ -157,6 +157,13 @@ report this project can get.
 
 **Snapshot names look truncated on the device.** Ten characters is the limit.
 
+**The preset loads but something is obviously wrong — no stereo, a dead pedal,
+a channel that will not change.** Run `node tools/check-rules.js`. It checks
+the things the manual states and the other validators cannot see from the
+corpus alone: the per-preset and per-path block limits, a mono block sitting
+downstream of a hard-panned stereo image, and whether an amp's `Channel`
+parameter is the right JSON type for that model.
+
 **You updated the firmware.** Export a few presets and run
 `node tools/check-firmware-delta.js path/to/new-exports`, then re-run the
 catalogue miner. A firmware update can add parameters or models, and in the

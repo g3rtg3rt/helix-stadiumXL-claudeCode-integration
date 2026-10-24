@@ -64,7 +64,31 @@ preset.flow[1]   Path 2      path 0 = upper, path 1 = lower
 ```
 
 Each path has **14 positions**, `0` to `13`. Position 0 is the input block and
-13 the output block, leaving 1–12 for processing.
+13 the output block, leaving 1–12 for processing. The manual confirms the
+arithmetic from the other direction: "Helix Stadium's four paths (Path 1A, 1B,
+2A, and 2B) each offer 12 block locations, for a total 48 block capacity."
+
+**Paths 1 and 2 have independent DSP.** `flow[0]` and `flow[1]` are not merely
+two grids — they are two processors. A preset with everything on `flow[0]` uses
+half the device. Routing is what joins them: a Path 1 output block set to
+`Path 2A` makes one long serial chain.
+
+### Hard limits the device enforces
+
+From Dynamic DSP. These are counts, not DSP estimates, so they can be checked
+in a file — `tools/check-rules.js` does:
+
+| Block | Maximum |
+|---|---|
+| Amp or Preamp | 4 per preset, **2 per path** |
+| Cab | 4 per preset, **2 per path** (each holding up to 2 cabs/IRs) |
+| Poly / high-DSP effects | 2 per preset, **1 per path** |
+| Looper | **1 per preset** |
+
+Named poly models: Feedbacker, Poly Sustain, Poly Detune, Poly Pitch, Wham,
+Capo, 12 String. DSP cost, roughly: Amp, Clone, Reverb and Poly are expensive;
+Cab, EQ, Dynamics, Volume/Pan and Send/Return are cheap; a stereo effect costs
+about twice its mono version.
 
 **Block ids are arithmetic, not arbitrary:**
 
@@ -94,10 +118,10 @@ A flow object also carries its own `"@enabled": { "value": true }`.
 
 | Field | Notes |
 |---|---|
-| `type` | `input` `output` `fx` `amp` `cab` `split` `join` |
+| `type` | `input` `output` `fx` `amp` `cab` `split` `join` — the UI calls a join a **Merge**, and the model id is `P35_AppDSPJoin`. Searching the manual for "join" finds nothing |
 | `slot` | an array. Amps and most fx have one; **cabs have two** |
 | `harness` | per-type wrapper params — see below |
-| `linkedblock` | amp↔cab association. **May be one-way, may cross flows, may be absent entirely.** Three stricter assumptions about this were disproven by factory files |
+| `linkedblock` | amp↔cab association. **May be one-way, may cross flows, may be absent entirely.** Three stricter assumptions about this were disproven by factory files — the manual explains why: the link is only established when the cab is added via the amp list's **Add Cab Block** toggle, and never for Clone blocks. A hand-added cab is simply not linked |
 | `branch` | present on a split **exactly when its lower path has blocks** (21/21 vs 3/3 in the corpus) |
 | `endpoint` | on input/output blocks, naming the opposite end |
 
@@ -151,6 +175,22 @@ rather than chosen. **Input and output blocks are the exception** and mostly
 omit it (inputs 22%, outputs 38%). `tools/fix-snapshot-coverage.js` fills the
 gap, seeding from the block's current value so behaviour does not change.
 
+What a snapshot stores, per the manual: **block bypass state** for every
+processing block **except the Looper**, including splits and whole switchable
+routings; any parameter with **Snapshot Ctrl** on; Command Center values; and
+**tempo only if** Global Settings > Tempo/Click > Tempo Select is `Snapshot`
+(the default is `Per Preset`, so the `tempo` field in each snapshot is inert
+on a default device).
+
+An amp's **`Channel`** parameter is snapshot-controllable, which is how one
+preset covers several channels of the same amp.
+
+The per-block **Snapshots Set Bypass** toggle in the UI looks like the presence
+of `@enabled.snapshots` on the block: it defaults on, and in one 70-preset
+corpus 803 of 823 processing blocks carry the array while input and output
+blocks mostly do not. *That mapping is a hypothesis from the correlation, not
+something confirmed by writing the file and reading the toggle back.*
+
 **Snapshots cannot change a block's model.** They can change parameters and
 bypass state. One useful exception: `P35_AppDSPSplitAB`'s `RouteTo` crossfade
 *is* snapshot-controllable, which is how a single preset covers clean and
@@ -158,9 +198,33 @@ high-gain from two parallel amps.
 
 ## Stereo
 
+There are **four split types**, not two:
+
+| Model | Parameters |
+|---|---|
+| `...SplitY` | `Balance A`, `Balance B` — even by default; set A left / B right to separate channels |
+| `...SplitAB` | `Route To` — the crossfade, and the one that is snapshot-controllable |
+| Crossover | `Frequency`, `Reverse` — splits by frequency (highs to A, lows to B) |
+| Dynamic | `Threshold`, `Attack`, `Decay`, `Reverse` — splits by how hard you play |
+
+A Merge is `Merge > Mixer` with `A Level`, `A Pan`, `B Level`, `B Pan`,
+`B Polarity` and `Level`. Note the manual's warning that "the overall output
+level of the signal is increased slightly for each parallel path added" —
+compensate on the Merge's `Level`, not further downstream.
+
 `P35_AppDSPSplitY` plus a Join with `"A Pan": 0` and `"B Pan": 1` gives hard
 left/right stereo. Cab blocks use `...WithPan` models with a `Pan` parameter,
 `0.0` hard left to `1.0` hard right, `0.5` centre.
+
+**A cab block's routing changes with how many slots you use**, which the manual
+states outright and which matters more than it sounds:
+
+- **one slot** in use — the block **sums its input to mono**, and outputs stereo
+- **two slots** in use — stereo in, stereo out
+
+So a single-cab block is itself a stereo-destroying block, and a dual-cab block
+is the only cab configuration that passes a stereo image through. `NO CAB` is
+only selectable for the *second* slot.
 
 A cab block has **two slots**. The second may be `HD2_CabMicIr_NoCab`, or a real
 cab — including a **different** cab model, which four factory presets do (all of
@@ -196,13 +260,26 @@ parameter assignment is `type: "param"` on the parameter:
 
 `source: 0` means **unassigned**, not a missing declaration.
 
+Those field names are opaque in the file and obvious in the UI:
+
+| Field | Called in the UI | Notes |
+|---|---|---|
+| `min` / `max` | Min Value / Max Value | heel and toe for a pedal. **`min` > `max` is legal** and reverses the control |
+| `threshold` | Position | for a bypass on a pedal: where in the travel it switches |
+| `delay` | Wait | how long before the bypass follows |
+| `behavior` | Type / Behavior | `latching` toggles, `momentary` only while held, `continuous` for a pedal |
+| `midisource` | MIDI In | `0` = None; otherwise a CC, where 0–63 is off and 64–127 on |
+| `curve` | — | `linear` throughout the corpus; the manual does not document alternatives |
+| `goid` | — | still unexplained; copy what the corpus has |
+
 The device drops `bypass` from any switch entry in `sources` that nothing is
 assigned to, so only emit it for switches actually in use.
 
 ### A wah, which is the worked example
 
-Every wah in the corpus is wired identically, and it is worth copying rather
-than reinventing:
+Every wah in the corpus is wired identically — and the manual confirms this is
+not a convention someone chose but what the device does automatically when you
+add the block. Copy it rather than reinventing it:
 
 - the block sits at **position 1**, straight after the input
 - its `Pedal` parameter → **EXP 1** (`16908544`, continuous)
@@ -216,12 +293,30 @@ for each of `16844032`, `16908544`, `16908545`) — in this toolkit,
 `preset({ pedals: true })`. Without them the assignments exist but the device
 has nowhere to attach them.
 
+**A volume or pan block gets the same treatment on EXP 2**: Position (or Pan) to
+EXP 2, bypass to the toe switch. Assigning the parameter and forgetting the
+bypass leaves the block permanently in circuit, so wherever the pedal happens to
+be parked sets the level — park it at heel and the patch is silent.
+
+**This differs by device.** On a **Stadium XL** the bypass goes to the onboard
+**toe switch**, as above. On a **Stadium** (no onboard pedal) it goes to
+**EXP Toggle**, and the user wires an external pedal and switch to the Control
+A/B jack. If you are generating for a non-XL, the corpus you mined will tell
+you which one your device writes.
+
 ## `preset.params`
 
 ```json
 { "activeexpsw": 1, "activesnapshot": 0, "inst1Z": "FirstEnabled",
   "inst2Z": "FirstEnabled", "tempo": 120.0 }
 ```
+
+`inst1Z` / `inst2Z` are the **Instrument Input Z** setting — the input
+impedance circuit that loads your pickups. `FirstBlock` follows the first
+block whether or not it is enabled, `FirstEnabled` follows the first *enabled*
+block, or a fixed value from 10k to 1M Ohm. Lower values roll off highs and
+soften the feel; higher values are brighter and tighter. `activesnapshot` is
+the snapshot the preset opens on.
 
 ## When the firmware changes
 
