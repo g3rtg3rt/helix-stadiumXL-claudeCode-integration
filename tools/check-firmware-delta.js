@@ -202,3 +202,11 @@ if (blockers) {
 console.log('Nothing found that invalidates what the toolkit already knows.');
 console.log('Caveat: this only sees what your sample exercises. A model or');
 console.log('parameter absent from these exports is simply untested.');
+console.log('');
+console.log('IMPORTANT -- "no new models" above means none in THIS SAMPLE.');
+console.log('If you re-exported presets you already had, it CANNOT show you');
+console.log('models the update added: an old preset does not use them. Read the');
+console.log('release notes for what was added, then build one scratch preset per');
+console.log('new model on the device and export that too. Until a model appears');
+console.log('in a device-written export there is no parameter set and no number');
+console.log('formatting for it, so it cannot be written safely.');

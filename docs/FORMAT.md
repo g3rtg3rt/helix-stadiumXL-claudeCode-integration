@@ -230,7 +230,13 @@ versions. An update can invalidate any of it, and the dangerous failure is
 silent: if the firmware starts rendering a number differently, the writer keeps
 using the old convention and the first symptom is a unit that faults.
 
-**After any firmware update, export a handful of presets and run:**
+**First, read the vendor's release notes.** The check below compares files,
+so it can only report on models your sample actually uses. Re-export the
+presets you already had and it will say "no new models" — truthfully about the
+sample, misleadingly about the firmware. An update that adds amps and effects
+adds them to a list you have no preset for yet.
+
+**Then export a handful of presets and run:**
 
 ```bash
 node tools/check-firmware-delta.js path/to/new-exports
@@ -253,6 +259,32 @@ Running exactly that check across nine re-exported presets found:
   has a `linkedblock`. The `HD2_*` amps did **not** gain it.
 - Nothing else: no other new parameters anywhere, and block and slot schema
   unchanged.
+
+The release notes then explained the one finding: 1.4 lists "speaker cabinet
+interaction with Agoura power amps is more accurate." `CabIdx` is that
+link — the Agoura amp's own reference to its cab, separate from the existing
+`linkedblock`. Which is why it lands on the Agoura family and not on `HD2_*`.
+
+**What the check could not tell us:** 1.4 added three amp models and six
+effects. None appeared, because all nine presets predated the update. New
+models only become usable once one of them appears in a preset the device
+wrote — see below.
+
+### New models an update adds
+
+A model needs two things before it can be written safely: its parameter set
+(names are per-model and not guessable — see `docs/GOTCHAS.md`) and the
+float-vs-int rendering of each of those parameters. Both come only from a
+preset **the device wrote**.
+
+So for each new model: make a scratch preset on the device that uses it, export
+it into `corpus/`, and re-run `node tools/mine-catalogue.js`. One preset can
+carry several new effects at once; amps are DSP-hungry, so expect to split them.
+
+If a new amp offers several channels or eras, check whether the channel is a
+*parameter* or a separate *model id* before assuming: export it twice with
+different channels selected and compare. Snapshots cannot change a model, so if
+the id differs you need one export per channel.
 
 `lib/builders.js` writes `CabIdx` only when the `FIRMWARE` constant you set
 there is 1.4 or later, so a unit on 1.3.x does not receive a parameter its

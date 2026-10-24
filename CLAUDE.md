@@ -49,8 +49,12 @@ model+parameter from the user's own corpus. That is why a corpus is mandatory.
 
 ## After a firmware update
 
-Run `node tools/check-firmware-delta.js <newExportDir>` before generating
-anything, and tell the user what it found. A firmware update can add parameters
+Read the vendor's release notes for that version first, then run
+`node tools/check-firmware-delta.js <newExportDir>` and tell the user what both
+said. The tool diffs files, so it reports only on models the sample uses: if the
+user re-exported presets they already had, it **cannot** see models the update
+added, and saying "no new models" on that basis is wrong. New models need a
+scratch preset exported per model before anything can be built with them. A firmware update can add parameters
 to existing models, and can in principle change how numbers are rendered — which
 is the failure that faults the unit. Also update the `FIRMWARE` constant in
 `lib/builders.js`; `device_version` is computed from it.

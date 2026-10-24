@@ -110,7 +110,25 @@ Three stricter assumptions, each disproven by factory files:
 - `source: 0` on a controller means **unassigned** — it is not a missing
   declaration you need to add.
 
-## 9. Windows-specific, if you are working there
+## 9. Device features that quietly undo file-level work
+
+Firmware gains conveniences that act on a preset after you generated it. Two
+worth knowing about, both from Helix Stadium 1.4:
+
+- **Swap Mono/Stereo Effects** converts a block between its mono and stereo
+  version, keeping its settings — useful, and it is exactly the fix for the
+  mono-block trap in `docs/PATCH-DESIGN.md`. But the release notes state that
+  **snapshot and controller assignments are cleared** when you swap. On a patch
+  whose snapshots carry per-snapshot values, or whose block is on an expression
+  pedal, swapping on the device throws that away. Swap in the builder instead,
+  where the `snapshots` arrays and `controller` blocks travel with the change.
+- **Expression pedals can be assigned globally or per preset**
+  (Global Settings > Switches/Pedals). A preset's own EXP assignments — the wah
+  wiring in `docs/FORMAT.md`, a volume pedal — assume the per-preset mode. If a
+  generated patch's pedal does nothing, check that setting before suspecting the
+  file. *Reported from release notes, not tested here.*
+
+## 10. Windows-specific, if you are working there
 
 - **Clone with LF.** Git for Windows sets `core.autocrlf=true` in its *system*
   config, so a default clone rewrites shell scripts to CRLF and they then fail
