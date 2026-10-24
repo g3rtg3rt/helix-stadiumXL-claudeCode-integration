@@ -42,8 +42,20 @@ function load(file) {
 const listHsp = (dir) =>
   fs.readdirSync(dir).filter((f) => f.toLowerCase().endsWith('.hsp')).map((f) => path.join(dir, f));
 
+/* Parameters that only some corpus instances of a model carry -- typically
+ * added by a firmware update. Collected and summarised once instead of
+ * reported against every block that predates them. */
+const optional = new Set();
+
 /* ---- build reference schema ---- */
-const schema = { models: new Map(), types: new Map(), blockTypes: new Set() };
+const schema = {
+  models: new Map(), types: new Map(), blockTypes: new Set(),
+  /* model -> { seen, params: Map<param, count> }, so a parameter present on
+   * only some instances can be told from one present on all. A corpus that
+   * spans two firmware versions makes this distinction mandatory: a parameter
+   * an update added is absent from every older file. */
+  counts: new Map(),
+};
 
 function learn(preset) {
   for (const flow of preset.preset.flow) {
@@ -54,6 +66,10 @@ function learn(preset) {
         const keys = slot.params ? Object.keys(slot.params).sort() : [];
         if (!schema.models.has(slot.model)) schema.models.set(slot.model, new Set(keys));
         else keys.forEach((k) => schema.models.get(slot.model).add(k));
+        if (!schema.counts.has(slot.model)) schema.counts.set(slot.model, { seen: 0, params: new Map() });
+        const c = schema.counts.get(slot.model);
+        c.seen++;
+        keys.forEach((k) => c.params.set(k, (c.params.get(k) || 0) + 1));
         schema.types.set(slot.model, b.type);
       }
     }
@@ -109,8 +125,18 @@ function check(file) {
         }
         const ref = schema.models.get(slot.model);
         const got = new Set(slot.params ? Object.keys(slot.params) : []);
-        for (const k of got) if (!ref.has(k)) note(file, `flow${fi} ${id} ${slot.model}: extra param "${k}"`);
-        for (const k of ref) if (!got.has(k)) note(file, `flow${fi} ${id} ${slot.model}: MISSING param "${k}"`);
+        const cnt = schema.counts.get(slot.model) || { seen: 0, params: new Map() };
+        for (const k of got) {
+          if (ref.has(k)) continue;
+          note(file, `flow${fi} ${id} ${slot.model}: extra param "${k}" `
+            + `(never seen on this model; it appears ${cnt.seen}x in the corpus)`);
+        }
+        for (const k of ref) {
+          if (got.has(k)) continue;
+          const on = cnt.params.get(k) || 0;
+          if (on < cnt.seen) { optional.add(`${slot.model}.${k} (on ${on} of ${cnt.seen})`); continue; }
+          note(file, `flow${fi} ${id} ${slot.model}: MISSING param "${k}"`);
+        }
 
         // 3. every param must be an object carrying `value`
         for (const [k, pv] of Object.entries(slot.params || {})) {
@@ -219,6 +245,13 @@ for (const f of listHsp(genDir)) {
   const before = problems.length;
   const r = check(f);
   console.log(`  ${path.basename(f).padEnd(28)} ${String(r.blocks).padStart(3)} blocks, ${r.validCount} snapshots  ${problems.length === before ? 'OK' : 'ISSUES'}`);
+}
+
+if (optional.size) {
+  console.log(`\n${optional.size} optional parameter(s) -- present on some corpus instances of a`);
+  console.log('model and not others, which is what a firmware update looks like. Not');
+  console.log('an error; listed so the information is not silently dropped:');
+  for (const o of [...optional].sort()) console.log(`  . ${o}`);
 }
 
 if (problems.length) {
