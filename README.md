@@ -97,7 +97,7 @@ yours — `corpus/` is gitignored.
 | **[docs/MODEL-CATALOGUE.md](docs/MODEL-CATALOGUE.md)** | 239 models with observed parameter ranges. Regenerate for your own device |
 | **[CLAUDE.md](CLAUDE.md)** | the operating manual Claude Code reads automatically |
 | `lib/` | the builders (71 exports, 13 amps), the device-safe JSON writer, the corpus resolver |
-| `tools/` | three validators, a device round-trip diff, the catalogue miner, a snapshot-coverage fixer |
+| `tools/` | three validators, a device round-trip diff, a **firmware delta check**, the catalogue miner, a snapshot-coverage fixer |
 | `examples/` | three patches that have been played on hardware, each teaching a different thing |
 
 ### The examples, in reading order

@@ -47,6 +47,14 @@ model+parameter from the user's own corpus. That is why a corpus is mandatory.
    levels to a measured value for *that amp* from the corpus, never a generic
    number. `docs/GOTCHAS.md` has a table.
 
+## After a firmware update
+
+Run `node tools/check-firmware-delta.js <newExportDir>` before generating
+anything, and tell the user what it found. A firmware update can add parameters
+to existing models, and can in principle change how numbers are rendered — which
+is the failure that faults the unit. Also update the `FIRMWARE` constant in
+`lib/builders.js`; `device_version` is computed from it.
+
 ## Workflow
 
 ```bash

@@ -4,9 +4,23 @@ Reverse-engineered from a corpus of device exports and confirmed by loading
 generated files on real hardware. Everything here is observed behaviour, not
 documentation from Line 6 — where a claim rests on a thin sample it says so.
 
-Device these notes were derived from: Helix Stadium XL,
-`device_id 2490368`, `device_version 318899516`. The container and data model
-are likely shared across the Helix family; model availability is not.
+Device these notes were derived from: Helix Stadium XL, `device_id 2490368`,
+firmware 1.3.2.1340 and 1.4.1.1343. The container and data model are likely
+shared across the Helix family; model availability is not.
+
+**`meta.device_version` is a packed integer**, not an opaque id:
+
+    (major << 28) | (minor << 24) | (patch << 16) | build
+
+Confirmed against two real exports:
+
+| Integer | Hex | Firmware |
+|---|---|---|
+| 318899516 | `0x1302053C` | 1.3.2.1340 |
+| 335611199 | `0x1401053F` | 1.4.1.1343 |
+
+So you can compute yours rather than copy a magic number, and you can read the
+firmware off any preset a device exported.
 
 ---
 
@@ -208,6 +222,48 @@ has nowhere to attach them.
 { "activeexpsw": 1, "activesnapshot": 0, "inst1Z": "FirstEnabled",
   "inst2Z": "FirstEnabled", "tempo": 120.0 }
 ```
+
+## When the firmware changes
+
+Everything in this document was learned from one device on two firmware
+versions. An update can invalidate any of it, and the dangerous failure is
+silent: if the firmware starts rendering a number differently, the writer keeps
+using the old convention and the first symptom is a unit that faults.
+
+**After any firmware update, export a handful of presets and run:**
+
+```bash
+node tools/check-firmware-delta.js path/to/new-exports
+```
+
+It reports, worst consequence first: number-formatting changes, device id and
+version, schema shape, added or removed models, and parameter-set changes on
+models present in both. Export presets whose filenames match ones already in
+your corpus — that isolates firmware changes from preset differences.
+
+### A worked example: 1.3.2 to 1.4.1
+
+Running exactly that check across nine re-exported presets found:
+
+- **Number formatting: unchanged** across 1345 fields. The thing that could
+  have faulted the unit did not change.
+- **`device_version`** 318899516 → 335611199, i.e. 1.3.2.1340 → 1.4.1.1343.
+- **A new parameter, `CabIdx`**, on the `Agoura_*` amp models — always `-1`
+  (this format's "unset", as with `EvtIdx`), and present whether or not the amp
+  has a `linkedblock`. The `HD2_*` amps did **not** gain it.
+- Nothing else: no other new parameters anywhere, and block and slot schema
+  unchanged.
+
+`lib/builders.js` writes `CabIdx` only when the `FIRMWARE` constant you set
+there is 1.4 or later, so a unit on 1.3.x does not receive a parameter its
+firmware has never seen.
+
+**One honest caveat on that finding:** eight Agoura models were observed with
+`CabIdx` and three HD2 models without it. That the whole Agoura family gained
+it is an *inference* from the pattern, not something every model was observed
+doing — a sample of nine presets does not contain every amp. If your validator
+reports `extra param "CabIdx"` for an Agoura amp, that is the tool correctly
+telling you it has never seen that particular model carry it.
 
 ## Telling device-written files apart from generated ones
 

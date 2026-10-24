@@ -157,6 +157,14 @@ report this project can get.
 
 **Snapshot names look truncated on the device.** Ten characters is the limit.
 
+**You updated the firmware.** Export a few presets and run
+`node tools/check-firmware-delta.js path/to/new-exports`, then re-run the
+catalogue miner. A firmware update can add parameters or models, and in the
+worst case change how numbers are written — see
+[FORMAT.md](FORMAT.md#when-the-firmware-changes), which walks through a real
+1.3.2 → 1.4.1 comparison. Also update the `FIRMWARE` constant at the top of
+`lib/builders.js`.
+
 **A validator flags something in a corpus file.** Expected, occasionally: the
 rules were derived from one device on one firmware. The tools deliberately check
 the corpus against their own rules first so that this shows up as reference
