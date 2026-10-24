@@ -127,6 +127,10 @@ if (onlyNew.length) console.log(`  ${onlyNew.length} field(s) only in the new ex
 console.log('\n--- schema shape ---');
 const shape = (m) => {
   const preset = new Set(), blk = new Set(), slot = new Set();
+  /* harness params are keyed by block TYPE, because the shapes differ per type
+   * (a cab has `dual`, a delay has `Trails`, a gate has `ControlSource`). */
+  const harness = new Map();
+
   for (const { json } of m.values()) {
     Object.keys(json.preset).forEach((k) => preset.add(k));
     for (const fl of json.preset.flow) {
@@ -134,10 +138,14 @@ const shape = (m) => {
         if (id === '@enabled' || !b) continue;
         Object.keys(b).forEach((k) => blk.add(k));
         for (const s of b.slot || []) Object.keys(s).forEach((k) => slot.add(k));
+        if (b.harness && b.harness.params && b.type) {
+          if (!harness.has(b.type)) harness.set(b.type, new Set());
+          Object.keys(b.harness.params).forEach((k) => harness.get(b.type).add(k));
+        }
       }
     }
   }
-  return { preset, blk, slot };
+  return { preset, blk, slot, harness };
 };
 const so = shape(oldFiles), sn = shape(newFiles);
 for (const [label, a, b] of [['preset', so.preset, sn.preset], ['block', so.blk, sn.blk], ['slot', so.slot, sn.slot]]) {
@@ -146,6 +154,20 @@ for (const [label, a, b] of [['preset', so.preset, sn.preset], ['block', so.blk,
   if (added.length) say('!', `${label}: NEW key(s) ${added.join(', ')}`);
   if (gone.length) console.log(`  . ${label}: key(s) not seen in the new sample: ${gone.join(', ')} (may just be absent from this sample)`);
   if (!added.length && !gone.length) console.log(`  ${label}: unchanged`);
+}
+
+/* harness, per block type. A new harness param here is usually benign -- the
+ * device adds them to newly created blocks and leaves migrated ones alone --
+ * but it has to be reported rather than invisible. */
+const types = [...new Set([...so.harness.keys(), ...sn.harness.keys()])].sort();
+for (const t of types) {
+  const a = so.harness.get(t) || new Set();
+  const b = sn.harness.get(t) || new Set();
+  const added = [...b].filter((k) => !a.has(k));
+  const gone = [...a].filter((k) => !b.has(k));
+  if (added.length) say('!', `harness[${t}]: NEW param(s) ${added.join(', ')}`);
+  if (gone.length) console.log(`  . harness[${t}]: not seen in the new sample: ${gone.join(', ')}`);
+  if (!added.length && !gone.length) console.log(`  harness[${t}]: unchanged`);
 }
 
 /* ---- 4 + 5. models and their parameter sets ---- */

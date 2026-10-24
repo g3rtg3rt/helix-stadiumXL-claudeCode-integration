@@ -81,6 +81,13 @@ knob, from an assigned Stomp switch, or via snapshots." So an amp offering four
 eras with three channels each is **one model with a `Channel` parameter**, not
 twelve models — and it is snapshot-controllable.
 
+**An amp can have a second such parameter.** The Brit SL100 (Marshall Super
+Lead) advertises twelve channels and is **one model with `Era` and `Channel`**:
+`Era` 0–3 for '67/'68/'70/'71 and `Channel` 0–2 for Normal/Bright/Jumped. Two
+exports of it differing in `Era` alone, and in nothing else, settled that. So
+do not assume one parameter covers a multi-channel amp, and do not assume a
+twelve-way amp is twelve models.
+
 The trap is the type. Across one corpus:
 
 | Type | Models |
@@ -152,7 +159,28 @@ Three stricter assumptions, each disproven by factory files:
 - `source: 0` on a controller means **unassigned** — it is not a missing
   declaration you need to add.
 
-## 11. Device features that quietly undo file-level work
+## 11. Parameter names are per-model even within one amp family
+
+Section 3 covers this generally; the Agoura Cali 2C+ is the extreme case and a
+good test of whether you are reading the corpus or guessing. On that one model:
+
+- the 5-band graphic EQ keys contain **spaces** and use an **underscore for the
+  decimal point** — `'80 Hz'`, `'240 Hz'`, `'750 Hz'`, `'2_2 KHz'`,
+  `'6_6 KHz'` — where the HD2 version of the same amp writes `80Hz`, `240Hz`,
+  `2200Hz`, `6600Hz` with no spaces at all
+- midrange is **`Middle`**, not `Mid`
+- impedance is **`PrePost`** — a third spelling, alongside `ZPrePost` on most
+  Agoura amps and `XPrePost` on the Revv Ch4
+- master is **`MasterVol`**, with a separate `Volume1` and a whole lead channel
+  (`LeadDrive`, `LeadMaster`, `LeadBright`)
+- `Channel`, `Class`, `Deep`, `ShiftBass` and `ShiftTreble` are **booleans**
+
+**`AmpCabShelfF` is per-model too**, which is easy to miss because it looks
+like boilerplate: 1000 on most Agoura amps, **3000** on US Luxe Black, Cali 2C+
+and Prosecutor, and **5355** on German Xtra Red. If your builder spreads a
+shared constant for the `AmpCab*` family, override it per model.
+
+## 12. Device features that quietly undo file-level work
 
 Firmware gains conveniences that act on a preset after you generated it. Two
 worth knowing about, both from Helix Stadium 1.4:

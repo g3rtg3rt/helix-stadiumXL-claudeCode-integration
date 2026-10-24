@@ -131,6 +131,7 @@ The harness is a wrapper around the block, distinct from the model's own params.
 
 | Used by | Params |
 |---|---|
+| blocks created under firmware 1.4+ | adds `CpuMonitor` (boolean, `false`) |
 | most fx | `EvtIdx`, `bypass`, `upper` |
 | fx with trails (delay, reverb) | adds `Trails` |
 | fx with a control source (gate, comp) | adds `ControlSource` |
@@ -352,6 +353,14 @@ Running exactly that check across nine re-exported presets found:
 - **A new parameter, `CabIdx`**, on the `Agoura_*` amp models — always `-1`
   (this format's "unset", as with `EvtIdx`), and present whether or not the amp
   has a `linkedblock`. The `HD2_*` amps did **not** gain it.
+- **A `CpuMonitor` harness parameter** (boolean, `false`) on blocks *created*
+  under 1.4 — almost certainly the release notes' improved per-block DSP
+  reporting. It appeared on all 18 blocks of six freshly built presets and on
+  **none** of the 111 migrated effect blocks in the corpus, which run fine
+  without it. So it is optional, and this toolkit does not write it. Note that
+  the first version of the delta check did not find this at all: it compared
+  preset, block and slot key sets and never looked inside `harness`. It does
+  now.
 - Nothing else: no other new parameters anywhere, and block and slot schema
   unchanged.
 
@@ -376,10 +385,19 @@ So for each new model: make a scratch preset on the device that uses it, export
 it into `corpus/`, and re-run `node tools/mine-catalogue.js`. One preset can
 carry several new effects at once; amps are DSP-hungry, so expect to split them.
 
-If a new amp offers several channels or eras, check whether the channel is a
-*parameter* or a separate *model id* before assuming: export it twice with
-different channels selected and compare. Snapshots cannot change a model, so if
-the id differs you need one export per channel.
+If a new amp offers several channels or eras, check whether they are
+*parameters* or separate *model ids* before assuming: export it twice with
+different channels selected and compare. On the one amp where this was tested —
+the Brit SL100, twelve channels — the two exports differed in a single integer
+`Era` parameter and nothing else, so one export covered all twelve. Expect
+parameters, but verify, because snapshots cannot change a model and a differing
+id would mean one export per channel.
+
+Once the exports are in, `node tools/check-builders.js` compares every builder
+against the device's own copy of that model: key set, int-vs-float rendering,
+and value as float32. It is the check worth running after writing a builder
+from a fresh export, because it catches a mistyped parameter name or a
+guessed-at value immediately.
 
 `lib/builders.js` writes `CabIdx` only when the `FIRMWARE` constant you set
 there is 1.4 or later, so a unit on 1.3.x does not receive a parameter its
