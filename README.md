@@ -95,7 +95,7 @@ yours — `corpus/` is gitignored.
 | **[docs/FORMAT.md](docs/FORMAT.md)** | the container and data model: block ids, **model-id shapes**, snapshots, controllers, **Command Center**, stereo routing, mono/stereo variant derivation, the wah wiring worked through |
 | **[docs/GOTCHAS.md](docs/GOTCHAS.md)** | the traps, ordered by what they cost you. Read before your first patch |
 | **[docs/PATCH-DESIGN.md](docs/PATCH-DESIGN.md)** | making a patch that works *musically*: the mono-block trap, level architecture, why your pickup changes the voicing |
-| **[docs/MODEL-CATALOGUE.md](docs/MODEL-CATALOGUE.md)** | 318 models with observed parameter ranges. Regenerate for your own device |
+| **[docs/MODEL-CATALOGUE.md](docs/MODEL-CATALOGUE.md)** | 334 models with observed parameter ranges. Regenerate for your own device |
 | **[docs/MODEL-NAME-MAP.md](docs/MODEL-NAME-MAP.md)** | why the menu name is not the model id, the ten confirmed mismatches, and how to establish a mapping that holds |
 | **[CLAUDE.md](CLAUDE.md)** | the operating manual Claude Code reads automatically |
 | `lib/` | the builders (81 exports, 17 amps), the device-safe JSON writer, the corpus resolver |

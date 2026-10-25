@@ -271,23 +271,45 @@ before you can build it. Non-jumped channel siblings are the one exception: Solo
 Lead Clean, Crunch and OD have identical key sets, so one covers the family —
 but a *Jumped* variant generally adds a second drive control and does not.
 
-## 17. A preamp is not derivable from its amp, and neither is a channel
+## 17. A preamp is its amp minus the power stage
 
-There are two controlled pairs in one corpus — the same amp available both as an
-`…Amp…` and a `…Preamp…` model — and they disagree:
+A preamp model is the same model without a power amp, and its parameter set says
+so literally: it drops the power-amp controls and keeps everything else.
 
-| model | amp | preamp | relation |
+**No preamp in a 12-preamp sample carries `Bias`, `BiasX` or `Ripple`.** Not one.
+Those three are power-amp parameters, and 14 of 18 legacy amps have them.
+`Presence` goes the same way in 11 of 12, with Line 6 Ventoux the one preamp that
+keeps it.
+
+The three controlled pairs — the same model available both as `…Amp…` and
+`…Preamp…` — all obey it:
+
+| model | amp | preamp | drops |
 |---|---|---|---|
-| Woody Blue | 12 parameters | 12 parameters | identical |
-| Derailed Ingrid | 13 parameters | 9 parameters | preamp drops `Bias`, `BiasX`, `Presence`, `Ripple` |
+| Derailed Ingrid | 13 | 9 | `Bias`, `BiasX`, `Presence`, `Ripple` |
+| Placater Dirty | 17 | 13 | `Bias`, `BiasX`, `Presence`, `Ripple` |
+| Woody Blue | 12 | 12 | nothing — **it has none of those four** |
 
-One identical, one a strict subset losing four parameters. Two samples, two
-answers, so a preamp's parameter set has to come from its own bytes.
+Woody Blue is the case worth dwelling on. An earlier revision of this file used
+it as proof that *no* rule existed: one pair identical, one pair losing four
+parameters, therefore unpredictable. But Woody Blue's amp has no `Bias`, `BiasX`,
+`Presence` or `Ripple` to lose — it is a tuning-fork amp carrying `TFCoarse`,
+`TFFine`, `TuningFork` and `Variamp` instead. That pair is identical *because* the
+rule applies and finds nothing to remove. **A model the rule does not bite on
+looks exactly like proof that there is no rule, as long as the rule is unstated.**
 
-Channel variants of one amp are worse. `HD2_PreampPlacaterClean` has 7
-parameters; `HD2_PreampPlacaterDirty` has 13, six of which — `C45`, `HBE`,
-`SSwitch`, `Fat`, `Voice`, `Saturation` — do not exist on the clean channel.
-Same physical amp, adjacent in the menu, nothing shared to derive from.
+So: derive a preamp as its amp minus `{Bias, BiasX, Ripple}`, treat `Presence` as
+a per-model question, and check bytes where you can. Three pairs is enough to
+predict with and not enough to be certain.
+
+**Channel variants are a different matter and really are not derivable.**
+`HD2_PreampPlacaterClean` has 7 parameters; `HD2_PreampPlacaterDirty` has 13, six
+of which — `C45`, `HBE`, `SSwitch`, `Fat`, `Voice`, `Saturation` — do not exist on
+the clean channel. Same physical amp, adjacent in the menu, nothing shared.
+
+**And legacy amps still share almost nothing with each other.** Across 18 of them
+the parameters common to *all* are `Bass`, `ChVol` and `Treble` — three. Adding
+four more amps to the sample did not add a fourth.
 
 ## 18. The model id is neither the menu name nor a predictable shape
 

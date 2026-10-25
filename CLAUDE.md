@@ -131,9 +131,10 @@ worse than an error, because it reports success.
   text with their display name, and two forms are not prefixed at all. Never
   report a model missing on a name match alone, and never filter on
   `^(HD2_|HX2_|VIC_|P35_|Agoura_)` -- see `docs/MODEL-NAME-MAP.md`.
-- **A preamp is not derivable from its amp**, nor one channel from another.
-  Woody Blue's preamp matches its amp exactly; Derailed Ingrid's drops four
-  parameters. Get the bytes.
+- **A preamp is its amp minus the power stage**: drop `Bias`, `BiasX` and
+  `Ripple`, and usually `Presence`. No preamp of 12 has the first three. A
+  **channel** variant is a different matter and is not derivable -- Placater
+  Clean and Dirty differ by six parameters. See `docs/GOTCHAS.md` §17.
 - **Put per-snapshot level in ONE gain block**, keep the preset output for
   patch-to-patch balance, and freeze amp and cab levels. Mixing those jobs makes
   balancing unmanageable and slides the stereo image between snapshots.
