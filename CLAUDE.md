@@ -122,10 +122,18 @@ worse than an error, because it reports success.
   to centre.** This is the most common way to build a patch that looks stereo
   and is not. Check for a `...Stereo` twin of the model before moving anything.
 - **A `...Stereo` twin is a different model with a different parameter set.**
-  It never drops a parameter, but what it adds is family-dependent: nothing for
-  dirt/dynamics/EQ/reverb/wah, `Spread` for most modulation, `Scale` and/or
-  `Spread` for delays, voice pans for pitch. Only the first group is safe to
-  derive without device bytes -- see the table in `docs/FORMAT.md`.
+  It never drops a parameter. Nothing is added for dirt, dynamics, EQ, reverb,
+  wah/filter, vol/pan or loopers; `Spread` for most modulation; one pan per
+  `LevelVoiceN` for pitch. **Delay is the only family that cannot be derived** --
+  it adds `Scale`, `Spread`, `Source` or nothing, unpredictably. Table in
+  `docs/FORMAT.md`.
+- **A model id is not the menu name, and not `PREFIX_Name`.** Nine ids share no
+  text with their display name, and two forms are not prefixed at all. Never
+  report a model missing on a name match alone, and never filter on
+  `^(HD2_|HX2_|VIC_|P35_|Agoura_)` -- see `docs/MODEL-NAME-MAP.md`.
+- **A preamp is not derivable from its amp**, nor one channel from another.
+  Woody Blue's preamp matches its amp exactly; Derailed Ingrid's drops four
+  parameters. Get the bytes.
 - **Put per-snapshot level in ONE gain block**, keep the preset output for
   patch-to-patch balance, and freeze amp and cab levels. Mixing those jobs makes
   balancing unmanageable and slides the stereo image between snapshots.

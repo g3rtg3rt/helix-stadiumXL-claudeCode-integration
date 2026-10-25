@@ -45,9 +45,22 @@ if (!fs.existsSync(dir)) {
   console.error(corpus.explain('the corpus directory does not exist.'));
   process.exit(1);
 }
+/* Walk SUBDIRECTORIES too. This was a flat readdirSync, which silently skipped
+ * every per-firmware subfolder of the corpus. On a corpus with a 1.4.1/ folder
+ * beside the top-level exports that meant 69 of 318 models missing from the
+ * catalogue, with nothing in the output to say anything had been left out. */
+function listHsp(d, out = []) {
+  for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+    const p = path.join(d, e.name);
+    if (e.isDirectory()) listHsp(p, out);
+    else if (e.name.toLowerCase().endsWith('.hsp')) out.push(p);
+  }
+  return out;
+}
+
 // Refuse to write an empty catalogue over a good one. The directory existing is
 // not enough -- corpus/ ships with a README and a .gitkeep in it.
-if (fs.readdirSync(dir).filter((f) => f.toLowerCase().endsWith('.hsp')).length === 0) {
+if (listHsp(dir).length === 0) {
   console.error(corpus.explain('the corpus has no .hsp files, so there is nothing to mine.'));
   console.error('Refusing to overwrite ' + outFile + ' with an empty catalogue.');
   process.exit(1);
@@ -75,11 +88,11 @@ function note(model, type, params) {
   }
 }
 
-const files = fs.readdirSync(dir).filter((f) => f.toLowerCase().endsWith('.hsp'));
+const files = listHsp(dir);
 for (const f of files) {
   let j;
-  try { j = JSON.parse(fs.readFileSync(path.join(dir, f)).subarray(8).toString('utf8')); }
-  catch (e) { console.error(`skip ${f}: ${e.message}`); continue; }
+  try { j = JSON.parse(fs.readFileSync(f).subarray(8).toString('utf8')); }
+  catch (e) { console.error(`skip ${path.relative(dir, f)}: ${e.message}`); continue; }
   for (const flow of j.preset.flow) {
     for (const [id, b] of Object.entries(flow)) {
       if (id === '@enabled') continue;
@@ -88,22 +101,57 @@ for (const f of files) {
   }
 }
 
-/* group by prefix + type for readability */
+/* Strip the generation marker off a model id.
+ *
+ * The id grammar is NOT `KNOWNPREFIX_Name`. Observed forms, all in real exports:
+ *   HD2_DelayMultiPassStereo        prefix from a known set
+ *   L6SPB_PolyWham                  prefix outside the set first written down
+ *   EuclideanDelayStereo_Victoria   generation marker as a SUFFIX, no prefix
+ *   TapeEater                       no marker at all
+ *   HD2_DL4AnalogDelayStereo        a SECOND, inner marker (DL4/MM4/FM4/DM4)
+ * so the prefix list must be open-ended and the family token cannot be assumed
+ * to sit at the start of what is left. See docs/GOTCHAS.md. */
+const stem = (model) => model
+  .replace(/_[A-Z][a-z]+$/, '')              // trailing generation marker
+  .replace(/^[A-Za-z0-9]+_/, '')             // any leading PREFIX_, known or not
+  .replace(/^(DL4|MM4|FM4|DM4|MM|M13)/, ''); // legacy source-device marker
+
+/* Ids that carry no family token at all, so no amount of pattern matching will
+ * place them. Category per the official model list's own section for each. */
+const BY_HAND = {
+  MM4Dimension: 'Modulation',       // legacy Dimension chorus
+  TapeEater: 'Modulation',          // legacy, between Rotary Drum and Warble-Matic
+  FM4Growler: 'Pitch & Synth',      // legacy synth
+  FeedbackSim: 'Dynamics',          // Feedbacker, in the Dynamics section
+  AcousGtrSimMono: 'EQ, Filter & Wah',   // Acoustic Sim, in the EQ section
+  AcousGtrSimStereo: 'EQ, Filter & Wah',
+};
+
+/* group by family + type for readability */
 const CATEGORY = (model, type) => {
   if (type === 'amp') return 'Amps';
   if (type === 'cab') return 'Cabs & IRs';
   if (type === 'input' || type === 'output') return 'Input / Output';
   if (type === 'split' || type === 'join') return 'Routing';
   if (type === 'looper') return 'Looper';
-  const n = model.replace(/^(HD2_|HX2_|VIC_|P35_|L6SPB_|Agoura_)/, '');
-  if (/^Dist|^Drive|^Fuzz/.test(n)) return 'Drives & Distortion';
-  if (/^Delay/.test(n)) return 'Delay';
-  if (/^Reverb/.test(n)) return 'Reverb';
-  if (/^Chorus|^Phaser|^Flanger|^Tremolo|^Rotary|^Vibrato|^Mod/.test(n)) return 'Modulation';
-  if (/^EQ|^Filter|^Wah/.test(n)) return 'EQ, Filter & Wah';
-  if (/^Comp|^Gate|^DM4|^Limit/.test(n)) return 'Dynamics';
-  if (/^Pitch|^Poly|^Synth|^Harmon/.test(n)) return 'Pitch & Synth';
-  if (/^Vol|^Pan/.test(n)) return 'Volume & Pan';
+  const bare = model.replace(/^[A-Za-z0-9]+_/, '');
+  if (BY_HAND[bare]) return BY_HAND[bare];
+  const n = stem(model);
+  /* Anchored first -- the family token leads in the common case, and anchoring
+   * keeps "RingModulatorPitchRingMod" out of Pitch. Unanchored only as a
+   * fallback, so a model whose family token sits mid-id still lands somewhere
+   * better than "Other FX". */
+  for (const anchored of [true, false]) {
+    const re = (s) => new RegExp(anchored ? `^(${s})` : `(${s})`).test(n);
+    if (re('Dist|Drive|Fuzz|Boost|Screamer')) return 'Drives & Distortion';
+    if (re('Delay|Echo')) return 'Delay';
+    if (re('Reverb|Spring|Plate|Room|Hall|Tank|Ambience|Shimmer|Bloom')) return 'Reverb';
+    if (re('Chorus|Phaser|Flanger|Tremolo|Rotary|Vibrato|Vibe|Mod|Reel|RingMod')) return 'Modulation';
+    if (re('EQ|Filter|Wah|CaliQ|Parametric|Tilt')) return 'EQ, Filter & Wah';
+    if (re('Comp|Gate|Limit|Squeeze')) return 'Dynamics';
+    if (re('Pitch|Poly|Synth|Harmon|Octav')) return 'Pitch & Synth';
+    if (re('Vol|Pan')) return 'Volume & Pan';
+  }
   return 'Other FX';
 };
 

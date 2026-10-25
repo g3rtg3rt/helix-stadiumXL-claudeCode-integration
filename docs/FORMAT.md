@@ -240,30 +240,75 @@ untouched.
 **Mono blocks sum stereo back to centre.** See `docs/PATCH-DESIGN.md` — it is
 the most common way to build a patch that looks stereo and is not.
 
+### The shape of a model id
+
+Not `KNOWNPREFIX_FamilyNameVariant`. Across 318 ids in one corpus, all five of
+these forms occur:
+
+| form | example | count |
+|---|---|---|
+| `PREFIX_Name` | `HD2_DelayMultiPassStereo` | `HD2_` 214, `Agoura_` 30, `VIC_` 20, `HX2_` 19, `P35_` 16 |
+| a prefix outside the obvious set | `L6SPB_PolyWham` | 4 |
+| a prefix plus an inner device marker | `HD2_DL4AnalogDelayStereo` (`DL4`, `MM4`, `FM4`, `DM4`) | several |
+| generation marker as a **suffix**, no prefix | `EuclideanDelayStereo_Victoria` | 1 |
+| no marker at all | `TapeEater` | 1 |
+
+So the prefix set is open-ended, two of the forms are not prefixes, and the
+family token cannot be assumed to sit at the start of what remains after
+stripping. Anything matching `^(HD2_|HX2_|VIC_|P35_|Agoura_)` will skip models
+without saying so. `tools/mine-catalogue.js` has a `stem()` worth copying.
+
+Separately: **the id is not the menu name.** Nine confirmed cases share no text
+at all with the display name — see `docs/MODEL-NAME-MAP.md`, which also covers
+how to establish a mapping that holds.
+
 ### Mono and stereo variants of the same model
 
 Most effects ship as two models, `...Mono` and `...Stereo`. They are separate
 ids with separate parameter sets, so you cannot rename the suffix and hope.
 
-Across 47 sibling pairs in the corpus, a stereo variant **only ever adds**
+Across 55 sibling pairs in the corpus, a stereo variant **only ever adds**
 parameters — it never drops one or renames one. What it adds depends on the
 family, and that is the part worth knowing before you generate one you have no
 bytes for:
 
 | Family | Pairs seen | What stereo adds | Safe to derive? |
 |---|---|---|---|
-| distortion, fuzz, compressor, EQ, reverb, volume/pan | 13 | nothing | **yes** |
-| wah | 3 | nothing | **yes** |
-| modulation (chorus, phaser, flanger, tremolo, vibrato) | 15 | `Spread` — 14 of 15 | no: Dimension W adds nothing |
-| delay | 8 | `Scale`, `Spread`, or both | no: Simple Delay gains only `Scale`, Reverse Delay only `Spread`, Elephant Man both |
-| pitch | 3 | `PanVoice1`, `PanVoice2`, `PanDry` | no: Twin Harmony adds two voice pans, Simple Pitch `PanDry`+`PanVoice1`, Boctaver nothing |
+| distortion, fuzz, compressor, EQ, volume/pan, looper | 17 | nothing | **yes** |
+| reverb | 6 | nothing | **yes** |
+| wah **and filter** | 5 | nothing | **yes** |
+| modulation (chorus, phaser, flanger, tremolo, vibrato) | 16 | `Spread` — 14 of 16 | no: Dimension W adds nothing, 70s Chorus also adds `Stereo` |
+| pitch | 5 | one pan per voice | **yes** — see the voice rule below |
+| delay | 11 | `Scale`, `Spread`, `Source`, or nothing | **no** |
 
-A cautionary note on how that table was built: an earlier revision of this file
-claimed the additions came only from `{Spread, Scale, Stereo}`. That held across
-36 pairs and was wrong — the sample happened to contain no pitch effects, and
-pitch effects pan their voices instead. **A rule induced from a corpus is only
-as general as the corpus's coverage of the thing being ruled on**, so check
-which families your sample actually contains before trusting one.
+**Pitch follows a mechanism, not a family rule.** A stereo pitch variant adds one
+pan parameter for each discrete voice the model has, plus `PanDry` when it mixes
+in dry signal, and adds nothing when it has no voices:
+
+| model | voice parameters | stereo adds |
+|---|---|---|
+| Dual Pitch | `LevelVoice1`, `LevelVoice2` | `PanVoice1`, `PanVoice2`, `PanDry` |
+| Twin Harmony | `LevelVoice1`, `LevelVoice2` | `PanVoice1`, `PanVoice2` |
+| Simple Pitch | `LevelVoice1` | `PanVoice1`, `PanDry` |
+| Pitch Wham | none — a pedal bend | nothing |
+| Boctaver | none — `Oct1Level`/`Oct2Level` | nothing |
+
+So the test is whether the mono variant's parameter set contains `LevelVoiceN`,
+which is checkable in bytes you already hold. That makes pitch derivable.
+
+**Delay is the one family that is not.** Over 11 pairs the addition is `Scale`
+and `Spread` (4), `Scale` alone (3), `Spread` alone (2), `Source` alone (Double
+Take), or nothing (Glitch Delay) — with no property of the mono variant that
+predicts which.
+
+Two cautionary notes on how that table was built. An early revision claimed the
+additions came only from `{Spread, Scale, Stereo}`; that held across 36 pairs and
+was false, because the sample happened to contain no pitch effects. A later
+revision then called pitch "unpredictable, needs bytes" on the strength of three
+pairs; two more pairs showed the mechanism and made it predictable. **A rule
+induced from a corpus is only as general as that corpus's coverage of the thing
+being ruled on** — and "unpredictable" is itself a claim that needs the same
+scrutiny as a rule, because it stops you looking.
 
 ## Controllers: footswitches and expression pedals
 

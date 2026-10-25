@@ -271,7 +271,61 @@ before you can build it. Non-jumped channel siblings are the one exception: Solo
 Lead Clean, Crunch and OD have identical key sets, so one covers the family —
 but a *Jumped* variant generally adds a second drive control and does not.
 
-## 17. Windows-specific, if you are working there
+## 17. A preamp is not derivable from its amp, and neither is a channel
+
+There are two controlled pairs in one corpus — the same amp available both as an
+`…Amp…` and a `…Preamp…` model — and they disagree:
+
+| model | amp | preamp | relation |
+|---|---|---|---|
+| Woody Blue | 12 parameters | 12 parameters | identical |
+| Derailed Ingrid | 13 parameters | 9 parameters | preamp drops `Bias`, `BiasX`, `Presence`, `Ripple` |
+
+One identical, one a strict subset losing four parameters. Two samples, two
+answers, so a preamp's parameter set has to come from its own bytes.
+
+Channel variants of one amp are worse. `HD2_PreampPlacaterClean` has 7
+parameters; `HD2_PreampPlacaterDirty` has 13, six of which — `C45`, `HBE`,
+`SSwitch`, `Fat`, `Voice`, `Saturation` — do not exist on the clean channel.
+Same physical amp, adjacent in the menu, nothing shared to derive from.
+
+## 18. The model id is neither the menu name nor a predictable shape
+
+Two separate traps, and both make a "which models do I have?" report wrong in the
+quiet direction — it says *missing* when you hold the model.
+
+**The id is not the display name.** Nine confirmed cases share no text with the
+menu entry: "3 OSC Synth" is `HD2_SynthSubtractiveStereo`, "Bleat Chop Trem" is
+`HD2_TremoloPatternStereo`, "Tesselator" is `VIC_DelayStutterEditStereo`, "Poly
+Detune" is `L6SPB_PolyChorus`. The id tends to name the mechanism and the menu
+the feel — a pattern you can notice and cannot extrapolate.
+`docs/MODEL-NAME-MAP.md` has the full list and how to establish a mapping that
+holds; the short version is to place blocks in a known order and read the mapping
+off the slot positions.
+
+**The id shape is not `PREFIX_Name`.** `EuclideanDelayStereo_Victoria` puts its
+generation marker in a suffix with no prefix at all; `TapeEater` has neither. See
+the id-shape table in `docs/FORMAT.md`. `tools/mine-catalogue.js` used to anchor
+its family match to the start of the stripped id and filed 20 models under "Other
+FX" as a result, 17 of them wrongly — including every `DL4…` delay and every
+`VIC_DynPlate…` reverb.
+
+Also, the **Model List goes stale**: a device on newer firmware has models the
+published list does not mention, so an id you cannot match may be a renamed model
+*or* a new one. The file does not tell you which.
+
+## 19. A tool that walks a corpus must walk subdirectories
+
+`mine-catalogue.js` used a flat `readdirSync`, so a corpus organised with a
+per-firmware subfolder beside the top-level exports was mined at 76 files when it
+held 110, and catalogued 249 models of 318. Nothing in the output said anything
+had been skipped — the counts looked plausible, which is what let it survive.
+
+If you organise a corpus into subfolders, check that every tool reading it
+recurses. The symptom is a model you know you exported being absent from a
+report, which reads as an export problem rather than a tool one.
+
+## 20. Windows-specific, if you are working there
 
 - **Clone with LF.** Git for Windows sets `core.autocrlf=true` in its *system*
   config, so a default clone rewrites shell scripts to CRLF and they then fail
