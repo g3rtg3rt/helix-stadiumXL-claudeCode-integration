@@ -121,6 +121,11 @@ worse than an error, because it reports success.
 - **A mono block downstream of the cab or the Join sums hard-panned stereo back
   to centre.** This is the most common way to build a patch that looks stereo
   and is not. Check for a `...Stereo` twin of the model before moving anything.
+- **A `...Stereo` twin is a different model with a different parameter set.**
+  It never drops a parameter, but what it adds is family-dependent: nothing for
+  dirt/dynamics/EQ/reverb/wah, `Spread` for most modulation, `Scale` and/or
+  `Spread` for delays, voice pans for pitch. Only the first group is safe to
+  derive without device bytes -- see the table in `docs/FORMAT.md`.
 - **Put per-snapshot level in ONE gain block**, keep the preset output for
   patch-to-patch balance, and freeze amp and cab levels. Mixing those jobs makes
   balancing unmanageable and slides the stereo image between snapshots.

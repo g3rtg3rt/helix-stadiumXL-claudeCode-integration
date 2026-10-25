@@ -47,9 +47,13 @@ byte-matches what the editor itself produces.
 ```json
 {
   "meta":   { "color", "device_id", "device_version", "info", "name" },
-  "preset": { "clip", "cursor", "flow", "params", "snapshots", "sources", "xyctrl" }
+  "preset": { "clip", "commands", "cursor", "flow", "params", "snapshots", "sources", "xyctrl" }
 }
 ```
+
+`preset.commands` is **optional** — the device omits the key entirely when no
+Command Center assignment exists, which is true of most presets. See
+[Command Center](#command-center-presetcommands).
 
 `meta.info` is the free-text notes field shown in HX Edit. It is a good place to
 record *why* a patch is set up the way it is — it travels with the file.
@@ -236,17 +240,52 @@ untouched.
 **Mono blocks sum stereo back to centre.** See `docs/PATCH-DESIGN.md` — it is
 the most common way to build a patch that looks stereo and is not.
 
+### Mono and stereo variants of the same model
+
+Most effects ship as two models, `...Mono` and `...Stereo`. They are separate
+ids with separate parameter sets, so you cannot rename the suffix and hope.
+
+Across 47 sibling pairs in the corpus, a stereo variant **only ever adds**
+parameters — it never drops one or renames one. What it adds depends on the
+family, and that is the part worth knowing before you generate one you have no
+bytes for:
+
+| Family | Pairs seen | What stereo adds | Safe to derive? |
+|---|---|---|---|
+| distortion, fuzz, compressor, EQ, reverb, volume/pan | 13 | nothing | **yes** |
+| wah | 3 | nothing | **yes** |
+| modulation (chorus, phaser, flanger, tremolo, vibrato) | 15 | `Spread` — 14 of 15 | no: Dimension W adds nothing |
+| delay | 8 | `Scale`, `Spread`, or both | no: Simple Delay gains only `Scale`, Reverse Delay only `Spread`, Elephant Man both |
+| pitch | 3 | `PanVoice1`, `PanVoice2`, `PanDry` | no: Twin Harmony adds two voice pans, Simple Pitch `PanDry`+`PanVoice1`, Boctaver nothing |
+
+A cautionary note on how that table was built: an earlier revision of this file
+claimed the additions came only from `{Spread, Scale, Stereo}`. That held across
+36 pairs and was wrong — the sample happened to contain no pitch effects, and
+pitch effects pan their voices instead. **A rule induced from a corpus is only
+as general as the corpus's coverage of the thing being ruled on**, so check
+which families your sample actually contains before trusting one.
+
 ## Controllers: footswitches and expression pedals
 
 `preset.sources` declares the control surface; individual assignments live on
 the thing being controlled.
 
-| Source id | Meaning | `behavior` |
-|---|---|---|
-| `16843008 + n` (`0x0101xxxx`) | footswitch *n* | `latching` |
-| `16844032` (`0x1010400`) | **toe switch** | `latching` |
-| `16908544` (`0x1020100`) | **expression pedal 1** | `continuous` |
-| `16908545` (`0x1020101`) | expression pedal 2 | `continuous` |
+**Source ids are packed bytes, not a lookup table.** Read one as four bytes —
+`class | group | kind | index` — and the whole control surface falls out:
+
+| Hex | Decimal of index 0 | Source | `behavior` |
+|---|---|---|---|
+| `0x01 01 01 nn` | 16843008 | **Stomp A** switch *nn* | `latching` |
+| `0x01 01 02 nn` | 16843264 | **Stomp B** switch *nn* | `latching` |
+| `0x01 01 05 00` | 16844032 | **toe switch** | `latching` |
+| `0x01 02 01 nn` | 16908544 | **expression pedal** *nn* | `continuous` |
+| `0x02 02 01 nn` | 33685760 | external controller *nn* (XL) | `latching` |
+| `0x04 04 01 nn` | 67371264 | **Instant** *nn* (Command Center only) | `latching` |
+| `0x08 02 03 00` | 134349568 | **XY controller** axis | `latching` |
+
+Earlier revisions of this file described `16843008 + n` as "footswitch *n*" and
+gave the toe switch as `0x1010400`. Both were wrong: Stomp A and Stomp B are
+separate `kind` bytes, and the toe switch is `0x01010500`.
 
 A bypass assignment is `type: "targetbypass"` on the block's `@enabled`. A
 parameter assignment is `type: "param"` on the parameter:
@@ -304,6 +343,120 @@ be parked sets the level — park it at heel and the patch is silent.
 **EXP Toggle**, and the user wires an external pedal and switch to the Control
 A/B jack. If you are generating for a non-XL, the corpus you mined will tell
 you which one your device writes.
+
+## Command Center (`preset.commands`)
+
+An **optional** top-level section, absent from most presets. It is a map of
+**source id → array of commands**, keyed by exactly the ids in the table above.
+
+```json
+"commands": {
+  "16843012": [
+    { "behavior": "latching", "curve": "linear", "delay": 0, "goid": 0,
+      "ordinal": 0, "threshold": 0, "toggle": false, "type": "MIDI",
+      "params": { "Action": { "value": 1 }, "CC#": { "value": 20 }, ... } },
+    { "ordinal": 1, "type": "MIDI", "params": { "Action": { "value": 0 }, ... } }
+  ]
+}
+```
+
+The meta fields are the same shape as a controller assignment, plus `ordinal`
+and `toggle`.
+
+### Two commands on one source
+
+Stomp switches, the toe switch, external switches and triggers take **two**
+commands — the two tabs in the inspector. Both live in the one array, each
+carrying its own `ordinal` (0 and 1).
+
+- `ordinal` is **tab order, not action order.** In the corpus sample, ordinal 0
+  holds the Release and ordinal 1 the Press.
+- The pair may use **different CC numbers**. The manual's description — the same
+  CC with two values — is a convention it suggests, not a constraint the format
+  enforces.
+
+### The seven command types
+
+`type` selects the category, and each has its own parameter set:
+
+| `type` | Parameters |
+|---|---|
+| `MIDI` | three shapes — see below |
+| `PresetSnapshot` | `Action`, `Command`, `Preset`, `Setlist`, `Snapshot` |
+| `Looper` | `Action`, `Command` |
+| `Utility` | `Action`, `Command`, `Level Trim` |
+| `Song` | `Command`, `Wait` |
+| `ExtAmp` | `Action`, `Select`, `toggle` |
+| `HotKey` | `Keystroke`, `Modifier 1`, `Modifier 2`, `Modifier 3`, `Wait` |
+
+`Utility.Level Trim` is **not in the manual**, which lists only Action and
+Command for that category. It is in the bytes regardless.
+
+In `PresetSnapshot`, `Command` picks what the switch does: **7 = Snapshot**,
+**4 = Preset**, with `Snapshot` / `Setlist` / `Preset` as the sibling indices.
+The indices read 0-based — snapshot 3 stores as `2`.
+
+### MIDI has three parameter shapes, chosen by the source class
+
+| Shape | How to tell | Sources |
+|---|---|---|
+| switch | has `Action`, no `Wait` | Stomp A/B, toe switch, external, triggers |
+| instant | has `Wait`, no `Action` | Instant 1~16 |
+| continuous | `Curve`, `Min Value`, `Max Value`; no `Action`, no `Command` | expression pedals, XY axes |
+
+So the shape is derivable from the source id — no probing needed. The switch and
+instant shapes otherwise share their keys: `CC#`, `Command`, `LSB`, `MIDI Ch`,
+`MSB`, `Message`, `Note`, `NoteOff`, `PC`, `Value`, `Velocity`.
+
+`Command` selects the message: **0 = PC, 1 = CC, 2 = Note**. The siblings a
+given message does not use stay present and parked — `PC: -1`, `MSB: -1`,
+`LSB: -1` — so a MIDI command always writes the full set.
+
+**`Value` is optional on the continuous shape.** Two of three corpus samples
+carry it and one does not; it appeared on a re-save of the same preset. Treat it
+as optional or the validator will flag good files.
+
+### `Action`
+
+| Value | Action |
+|---|---|
+| 0 | Press |
+| 1 | Release |
+| 2 | Hold |
+| 3 | Toggle |
+
+Expression pedals, XY axes and Instants have no `Action` at all.
+
+### Snapshot control of a command value
+
+A command parameter under snapshot control gains **`snaptarget: true`** beside
+its `snapshots` array:
+
+```json
+"PC": { "snapshots": [4, 6, null, null, null, null, null, null],
+        "snaptarget": true, "value": 4 }
+```
+
+**`snaptarget` appears on no block parameter** — 0 of 1849 snapshot-controlled
+block parameters in the corpus carry it. Writing a snapshot-controlled command
+by analogy to a block parameter therefore produces a command that does not
+track snapshots.
+
+### What a source will not accept
+
+The manual's Source Controller Types table is worth obeying, because the device
+simply does not offer the option:
+
+- **Instant 1~16** take every type **except `PresetSnapshot` and `Utility`**.
+- **Expression pedals and XY axes** take **MIDI CC only**, one command each.
+- Everything else takes all types, two commands each.
+
+### `toggle` is not configuration
+
+The meta field `toggle` read `true` on one Instant and `false` on the same
+Instant after a re-save with nothing deliberately changed. Corpus-wide it is 22
+`false` to 1 `true`. It is **not** the Toggle action — that is `Action: 3` with
+`toggle: false`. Write `false` and do not read meaning into it.
 
 ## `preset.params`
 

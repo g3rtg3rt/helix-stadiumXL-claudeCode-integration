@@ -205,7 +205,73 @@ worth knowing about, both from Helix Stadium 1.4:
   assignment to begin controlling its parameter." Worth trying before you go
   looking for a bug in the file.
 
-## 12. Windows-specific, if you are working there
+## 13. A stereo variant can add parameters, and which ones depends on the family
+
+`...Mono` and `...Stereo` are separate models. A stereo variant never drops a
+parameter, but what it *adds* varies: nothing for dirt, dynamics, EQ, reverb and
+wah; `Spread` for almost all modulation; `Scale` and/or `Spread` for delays,
+inconsistently; and `PanVoice1` / `PanVoice2` / `PanDry` for pitch effects. See
+the table in `docs/FORMAT.md`. Only the first group is safe to derive from the
+other variant's bytes.
+
+The reason this is a gotcha rather than a fact: an earlier version of these docs
+asserted the additions were always `Spread`, `Scale` or `Stereo`. That was true
+of all 36 pairs then in the corpus and false of the format, because none of those
+36 was a pitch effect. **An induced rule inherits the corpus's blind spots.**
+
+## 14. Command Center carries fields the manual omits, and one that means nothing
+
+- **`Utility.Level Trim`** is in the bytes and absent from the manual's Utility
+  section, which documents only `Action` and `Command`.
+- **`snaptarget: true`** is how a snapshot-controlled *command* parameter is
+  marked. No block parameter uses it — 0 of 1849 — so copying the block-parameter
+  shape yields a command that silently ignores snapshots.
+- **`toggle`** is not configuration. It flipped `true` → `false` across two
+  saves of one preset with nothing deliberately changed. The real Toggle action
+  is `Action: 3`. Write `toggle: false`.
+- **Instants cannot take every type.** Instant 1~16 accept all command types
+  *except* `PresetSnapshot` and `Utility`; expression pedals and XY axes accept
+  MIDI CC only. The device does not offer the others, so an instruction to assign
+  one is simply unfollowable.
+
+## 15. The official Model List is not a clean data source
+
+Scraping Line 6's model list is the right way to find what you are missing, but
+it needs defensive parsing:
+
+- **The "category" column is the mono/stereo column** for effects. The real
+  effect category is a page heading, not a field.
+- **Cabs are mixed in with amps** under the Guitar and Bass headings. A leading
+  speaker configuration (`4x12`, `1x15`, …) is what separates them — except
+  `Soup Pro Ellipse`, which is a cab with no such prefix.
+- **The vendor's own spelling drifts between the list and the model id**:
+  official *Alpaca Rogue* is `DistAlpacaRouge`, official *Ratatoullie Dist* is
+  `DistRatatouille`.
+- **Model ids drop words the display name has** — *Mercator Dist* →
+  `DistMercator`, *Cali Q Graphic* → `CaliQ`, *Lo Res* → `DL4LowResDelay` — and
+  abbreviate others (`Dynamic`→`Dyn`, `Volume`→`Vol`, `One`→`1`).
+- **Short names false-positive on substring matching.** *Chrome* matched
+  `WahChromeCustomMono`, hiding the fact that Chrome and Chrome Custom are two
+  different models (Vox V847 and a modded V847) with no overlap.
+
+Match on tokens with a stem fallback, then **eyeball the borderline band** — and
+reverse the match too, so ids that fit no official name reveal the abbreviations
+you have not handled.
+
+## 16. Legacy (HX) amps share almost nothing
+
+Across 14 legacy amps in one corpus, exactly **three** parameters are common to
+all of them: `Bass`, `ChVol`, `Treble`. Everything else is per-model — Matchstick
+has `Cut` and `Ch1Drive`, Grammatico GSG has 20 parameters including `ODSwitch`,
+`PAB` and `JazzRock`, Woody Blue has `TuningFork`, `Variamp` and `TFCoarse`,
+Cali IV carries a 5-band graphic EQ and SVT-4 Pro a 9-band.
+
+So **no legacy amp can be inferred from another one**. Each needs its own export
+before you can build it. Non-jumped channel siblings are the one exception: Solo
+Lead Clean, Crunch and OD have identical key sets, so one covers the family —
+but a *Jumped* variant generally adds a second drive control and does not.
+
+## 17. Windows-specific, if you are working there
 
 - **Clone with LF.** Git for Windows sets `core.autocrlf=true` in its *system*
   config, so a default clone rewrites shell scripts to CRLF and they then fail

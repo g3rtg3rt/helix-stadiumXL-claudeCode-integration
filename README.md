@@ -92,7 +92,7 @@ yours — `corpus/` is gitignored.
 
 | | |
 |---|---|
-| **[docs/FORMAT.md](docs/FORMAT.md)** | the container and data model: block ids, snapshots, controllers, stereo routing, the wah wiring worked through |
+| **[docs/FORMAT.md](docs/FORMAT.md)** | the container and data model: block ids, snapshots, controllers, **Command Center**, stereo routing, mono/stereo variant derivation, the wah wiring worked through |
 | **[docs/GOTCHAS.md](docs/GOTCHAS.md)** | the traps, ordered by what they cost you. Read before your first patch |
 | **[docs/PATCH-DESIGN.md](docs/PATCH-DESIGN.md)** | making a patch that works *musically*: the mono-block trap, level architecture, why your pickup changes the voicing |
 | **[docs/MODEL-CATALOGUE.md](docs/MODEL-CATALOGUE.md)** | 239 models with observed parameter ranges. Regenerate for your own device |
