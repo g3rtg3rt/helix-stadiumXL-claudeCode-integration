@@ -134,7 +134,7 @@ and 22 HX/legacy amps in one corpus:
 | `Bias` | **0** | 18 |
 | `BiasX` | **0** | 18 |
 | `Hum` | **0** | 12 |
-| `CabIdx` | 17 | 0 |
+| `CabIdx` | 17 — **firmware 1.4+ only** | 0 |
 | `ZPrePost` | 26 | 0 |
 | `Ripple` / `Sag` | 29 / 29 | 16 / 19 |
 

@@ -617,12 +617,37 @@ guessed-at value immediately.
 there is 1.4 or later, so a unit on 1.3.x does not receive a parameter its
 firmware has never seen.
 
-**One honest caveat on that finding:** eight Agoura models were observed with
-`CabIdx` and three HD2 models without it. That the whole Agoura family gained
-it is an *inference* from the pattern, not something every model was observed
-doing — a sample of nine presets does not contain every amp. If your validator
-reports `extra param "CabIdx"` for an Agoura amp, that is the tool correctly
-telling you it has never seen that particular model carry it.
+**That caveat is now settled, and the inference held.** It was recorded as an
+inference because nine presets cannot contain every amp. Re-measured across a
+114-export corpus spanning both firmwares, split by `device_version`:
+
+| firmware | Agoura amp blocks with `CabIdx` | without |
+|---|---|---|
+| 1.3.2.1340 (57 files) | **0** | 71 |
+| 1.4.1.1343 (18 files) | **39** | **0** |
+
+Perfectly clean, with no exception either way, and `CabIdx` appears on no
+non-Agoura model anywhere in the corpus. So it really is a parameter 1.4 added to
+the Agoura family, and the `FIRMWARE` gate in `lib/builders.js` is doing the right
+thing. Its value has been `-1` in all 39 occurrences, so nothing yet shows what a
+populated cab index looks like.
+
+**Two things this corrects, both of which read as evidence against the gate until
+you split by firmware:**
+
+- **Seventeen Agoura models carry it and eight of those also appear without it.**
+  Pooled, that looks like an optional field rather than a parameter. Split by
+  firmware it is the same model before and after an update, every time.
+- **A round trip can show the device "dropping" `CabIdx`.** Check the two
+  `device_version` values before believing it. Re-export a 1.4-built preset on a
+  unit running 1.3.2 and the field cannot survive, because that firmware has never
+  heard of it. That is not a drop, it is a cross-firmware comparison —
+  `roundtrip-diff.js` compares two files and cannot know you handed it one of each.
+
+So if your validator reports `extra param "CabIdx"` for an Agoura amp, check
+whether your reference corpus predates 1.4 before treating it as a defect. The
+tool is correctly saying it has not seen that model carry it; on a pre-1.4
+reference, no model will.
 
 ## Telling device-written files apart from generated ones
 
