@@ -213,6 +213,27 @@ good test of whether you are reading the corpus or guessing. On that one model:
   (`LeadDrive`, `LeadMaster`, `LeadBright`)
 - `Channel`, `Class`, `Deep`, `ShiftBass` and `ShiftTreble` are **booleans**
 
+**The clearest case is a control that exists on seven amps under six names.** A
+jumped or two-channel amp replaces `Drive` with two drive controls — that much is
+structural and derivable. What it calls them is not:
+
+| model | the two drive keys |
+|---|---|
+| Brit Trem Jump (HX) | `NrmDrive`, `BrtDrive` |
+| Brit Plexi, Brit SL100 (Agoura) | `NormDrv`, `BrightDrv` |
+| Essex TB30CC (Agoura) | `NrmDrv`, `BrtDrv` |
+| Who Watt 103 (Agoura) | `NormDrive`, `BrtDrive` |
+| Matchstick 30 (Agoura) | `Ch1Drv`, `Ch2Drv` |
+| Cartographer (HX) | `Drive`, `Drive2` |
+
+`Nrm` or `Norm`, `Brt` or `Bright`, `Drv` or `Drive`, and one amp numbering its
+channels instead of naming them. One concept, seven models, no two spellings in
+full agreement.
+
+Cartographer is also worth noting for a different reason: it has two drives
+**without being a jumped amp**, so a second drive control is a two-channel feature
+that jumping happens to use.
+
 **`AmpCabShelfF` is per-model too**, which is easy to miss because it looks
 like boilerplate: 1000 on most Agoura amps, **3000** on US Luxe Black, Cali 2C+
 and Prosecutor, and **5355** on German Xtra Red. If your builder spreads a
@@ -354,7 +375,7 @@ four more amps to the sample did not add a fourth.
 Two separate traps, and both make a "which models do I have?" report wrong in the
 quiet direction — it says *missing* when you hold the model.
 
-**The id is not the display name.** Eleven confirmed cases share no text with the
+**The id is not the display name.** Thirteen confirmed cases share no text with the
 menu entry: "3 OSC Synth" is `HD2_SynthSubtractiveStereo`, "Dynamic Hall" is
 `VIC_ReverbRotatingStereo`, "Bleat Chop Trem" is
 `HD2_TremoloPatternStereo`, "Tesselator" is `VIC_DelayStutterEditStereo`, "Poly
@@ -386,7 +407,56 @@ If you organise a corpus into subfolders, check that every tool reading it
 recurses. The symptom is a model you know you exported being absent from a
 report, which reads as an export problem rather than a tool one.
 
-## 20. Windows-specific, if you are working there
+The same function then needed three more rounds, each from a model id that had not
+existed in the corpus when the previous round was written. Worth listing, because
+each is a different way to get id parsing wrong:
+
+1. **A fixed prefix list** missed `L6SPB_`, and anchoring the family match to the
+   start of the stripped id filed 20 models under "Other FX", 17 wrongly.
+2. **A blanket `^[A-Za-z0-9]+_` strip** turned `Warble_Matic` into `Matic`.
+3. **A shape test for the trailing marker** (`_[A-Z][a-z]+$`) ate `_Matic` as
+   readily as `_Victoria`.
+4. **Case-insensitive matching**, added so that "Overdrive" would match `Drive`,
+   made upper-case `EQ` match the "eq" inside `FrequencyShifter` and filed a
+   legacy frequency shifter under EQ/Filter/Wah. Acronyms need a case-sensitive
+   pass; words need a folded one.
+
+The pattern across all four: **every one looked correct against the corpus at the
+time and was falsified by the next export.** A categoriser over an open vocabulary
+is not a thing you write once. The cheap defence is to assert that the fallback
+bucket is *empty* after a run, so a new id that nothing matches is a failure
+rather than a quiet default.
+
+## 20. A legacy model's prefix predicts its parameter shape
+
+Legacy effects carry the modeller they came from: `DL4`, `MM4`, `FM4`, `DM4`,
+`M13`. That marker is worth more than it looks, because it predicts the parameter
+set and not just the family.
+
+Three legacy distortions, picked to be as unalike as that section offers, came back
+with **no parameters in common at all** — not even `Level`:
+
+| model | parameters |
+|---|---|
+| `HD2_DM4Overdrive` (DOD 250) | `Bass`, `Drive`, `Mid`, `Output`, `Treble` |
+| `HD2_DM4FacialFuzz` (Fuzz Face) | `Bass`, `Drive`, `Mid`, `Output`, `Treble` |
+| `KillerZ` (BOSS Metal Zone) | `Contour`, `Dist`, `Gain`, `Mid Amt`, `Mid Freq`, `Smart` |
+
+The first two are **parameter-identical** despite modelling completely different
+pedals, because both are `DM4` models. The third has **no prefix at all** and is a
+different generation. So within a marker the family is uniform and inferable;
+across markers it is not.
+
+The `FM4`/`MM4` families likewise share `Level`, `Mix`, and on anything
+speed-based `Speed` plus `SyncSelect1`/`TempoSync1`. Two of them — `Warble_Matic`
+and `SampleAndHold` — have *identical* parameter sets while being different
+effects.
+
+And legacy compressors are all two parameters that each name the second one
+differently: `Level`+`Sustain`, `Level`+`Amount`, `Level`+`Thresh`. Same shape,
+three names — see section 11.
+
+## 21. Windows-specific, if you are working there
 
 - **Clone with LF.** Git for Windows sets `core.autocrlf=true` in its *system*
   config, so a default clone rewrites shell scripts to CRLF and they then fail

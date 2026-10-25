@@ -127,7 +127,7 @@ worse than an error, because it reports success.
   `LevelVoiceN` for pitch. **Delay is the only family that cannot be derived** --
   it adds `Scale`, `Spread`, `Source` or nothing, unpredictably. Table in
   `docs/FORMAT.md`.
-- **A model id is not the menu name, and not `PREFIX_Name`.** Eleven ids share no
+- **A model id is not the menu name, and not `PREFIX_Name`.** Thirteen ids share no
   text with their display name, and two forms are not prefixed at all. Never
   report a model missing on a name match alone, and never filter on
   `^(HD2_|HX2_|VIC_|P35_|Agoura_)` -- see `docs/MODEL-NAME-MAP.md`.

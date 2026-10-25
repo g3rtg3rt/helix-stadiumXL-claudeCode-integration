@@ -25,6 +25,8 @@ missing model that was in fact already in hand.
 | Hot Springs | `HD2_ReverbHxSpringStereo` | block position + `Drip`/`Dwell`/`Spring Count` |
 | Dynamic Hall | `VIC_ReverbRotatingStereo` | block position + the Dynamic family's parameter signature |
 | Bighorn Fuzz | `HD2_DistRamsHeadMono` | block position; the official list's `basedOn` names the circuit |
+| Smart Harmony | `HD2_M13TwoVoiceHarmony` | block position + `Key`/`Scale` parameters |
+| Random S&H | `SampleAndHold` | block position; no prefix on the id at all |
 
 The pattern, where there is one: **the id names the mechanism and the menu names
 the feel.** A step-sequenced tremolo is `TremoloPattern` on disk and "Bleat Chop

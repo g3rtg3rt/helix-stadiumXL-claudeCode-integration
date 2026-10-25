@@ -247,18 +247,34 @@ these forms occur:
 
 | form | example | count |
 |---|---|---|
-| `PREFIX_Name` | `HD2_DelayMultiPassStereo` | `HD2_` 214, `Agoura_` 30, `VIC_` 20, `HX2_` 19, `P35_` 16 |
-| a prefix outside the obvious set | `L6SPB_PolyWham` | 4 |
-| a prefix plus an inner device marker | `HD2_DL4AnalogDelayStereo` (`DL4`, `MM4`, `FM4`, `DM4`) | several |
+| `PREFIX_Name` | `HD2_DelayMultiPassStereo` | `HD2_` 273, `Agoura_` 30, `HX2_` 24, `VIC_` 21, `P35_` 16 |
+| a prefix outside the obvious set | `L6SPB_PolyWham` | 6 |
+| a prefix plus an inner device marker | `HD2_DL4AnalogDelayStereo` | `DL4` 6, `MM4` 6, `FM4` 12, `DM4` 6, `M13` 1 |
 | generation marker as a **suffix**, no prefix | `EuclideanDelayStereo_Victoria` | 1 |
-| no marker at all | `TapeEater` | 1 |
+| no marker at all | `TapeEater`, `KillerZ`, `BuzzWave`, `SampleAndHold` | 5 |
+| **an underscore inside the NAME** | `Warble_Matic` | 1 |
+
+Counts are from a 376-model corpus. Two of those rows are traps for a parser:
+
+- **`Warble_Matic` is a model whose name contains an underscore.** Anything that
+  strips a leading `Word_` as a prefix turns it into `Matic`. A prefix is a known
+  marker, or a token containing a digit (`HD2`, `HX2`, `P35`, `L6SPB`) — `Warble`
+  is neither, and `Agoura` and `VIC` have no digit so they stay on the known list.
+- **`_Matic` is shape-identical to `_Victoria`.** A "trailing generation marker"
+  regex of `_[A-Z][a-z]+$` eats both. The marker is a known vocabulary, not a
+  pattern — match `_Victoria`, not a shape.
+
+The inner marker is also a **family** signal, which is the cheapest way to place a
+legacy model whose name carries no family token: `DL4` is the Delay Modeler, `MM4`
+Modulation, `FM4` Filter (covering filters and synths), `DM4` Distortion. `FM4Seeker`
+is a filter because `FM4` says so; nothing in "Seeker" does.
 
 So the prefix set is open-ended, two of the forms are not prefixes, and the
 family token cannot be assumed to sit at the start of what remains after
 stripping. Anything matching `^(HD2_|HX2_|VIC_|P35_|Agoura_)` will skip models
 without saying so. `tools/mine-catalogue.js` has a `stem()` worth copying.
 
-Separately: **the id is not the menu name.** Eleven confirmed cases share no text
+Separately: **the id is not the menu name.** Thirteen confirmed cases share no text
 at all with the display name — see `docs/MODEL-NAME-MAP.md`, which also covers
 how to establish a mapping that holds.
 

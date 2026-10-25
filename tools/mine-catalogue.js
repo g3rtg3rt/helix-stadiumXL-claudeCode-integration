@@ -111,17 +111,46 @@ for (const f of files) {
  *   HD2_DL4AnalogDelayStereo        a SECOND, inner marker (DL4/MM4/FM4/DM4)
  * so the prefix list must be open-ended and the family token cannot be assumed
  * to sit at the start of what is left. See docs/GOTCHAS.md. */
+/* A prefix is a known marker, or a short token CONTAINING A DIGIT (HD2_, HX2_,
+ * P35_, L6SPB_). That digit test matters: `Warble_Matic` is a model whose NAME
+ * contains an underscore, and a blanket /^[A-Za-z0-9]+_/ strip turned it into
+ * "Matic". Agoura and VIC carry no digit, so they stay on the known list. */
+const PREFIX = /^(HD2|HX2|VIC|P35|Agoura|L6SPB|[A-Za-z]*\d[A-Za-z0-9]*)_/;
+
+/* The legacy source-device marker also names the family. */
+const MARKER = {
+  DL4: 'Delay',                  // Delay Modeler
+  MM4: 'Modulation',             // Modulation Modeler
+  FM4: 'EQ, Filter & Wah',       // Filter Modeler (its synths match on "Synth" first)
+  DM4: 'Drives & Distortion',    // Distortion Modeler
+  M13: null,                     // M13 spans everything; no family implied
+};
+
+const markerOf = (model) => {
+  const m = /(DL4|MM4|FM4|DM4|M13)/.exec(model);
+  return m ? m[1] : null;
+};
+
+/* Generation markers seen as a SUFFIX. A known list, not a pattern: `_Matic`
+ * (Warble-Matic) has the same shape as `_Victoria`, and a shape test ate it. */
+const SUFFIX = /_(Victoria)$/;
+
 const stem = (model) => model
-  .replace(/_[A-Z][a-z]+$/, '')              // trailing generation marker
-  .replace(/^[A-Za-z0-9]+_/, '')             // any leading PREFIX_, known or not
-  .replace(/^(DL4|MM4|FM4|DM4|MM|M13)/, ''); // legacy source-device marker
+  .replace(SUFFIX, '')                           // a generation marker, not a name
+  .replace(PREFIX, '')                           // a real prefix, not part of a name
+  .replace(/^(DL4|MM4|FM4|DM4|MM|M13)/, '');     // legacy source-device marker
 
 /* Ids that carry no family token at all, so no amount of pattern matching will
  * place them. Category per the official model list's own section for each. */
 const BY_HAND = {
   MM4Dimension: 'Modulation',       // legacy Dimension chorus
   TapeEater: 'Modulation',          // legacy, between Rotary Drum and Warble-Matic
+  Warble_Matic: 'Modulation',       // legacy; the id carries no family token
+  SampleAndHold: 'Modulation',      // legacy "Random S&H"
   FM4Growler: 'Pitch & Synth',      // legacy synth
+  BuzzWave: 'Pitch & Synth',        // legacy synth
+  KillerZ: 'Drives & Distortion',   // legacy BOSS Metal Zone, and NOT a DM4 model
+  DM4VettaJuice: 'Dynamics',        // a compressor despite the DM4 marker
   FeedbackSim: 'Dynamics',          // Feedbacker, in the Dynamics section
   AcousGtrSimMono: 'EQ, Filter & Wah',   // Acoustic Sim, in the EQ section
   AcousGtrSimStereo: 'EQ, Filter & Wah',
@@ -134,7 +163,8 @@ const CATEGORY = (model, type) => {
   if (type === 'input' || type === 'output') return 'Input / Output';
   if (type === 'split' || type === 'join') return 'Routing';
   if (type === 'looper') return 'Looper';
-  const bare = model.replace(/^[A-Za-z0-9]+_/, '');
+  if (BY_HAND[model]) return BY_HAND[model];
+  const bare = model.replace(PREFIX, '');
   if (BY_HAND[bare]) return BY_HAND[bare];
   const n = stem(model);
   /* Anchored first -- the family token leads in the common case, and anchoring
@@ -142,16 +172,30 @@ const CATEGORY = (model, type) => {
    * fallback, so a model whose family token sits mid-id still lands somewhere
    * better than "Other FX". */
   for (const anchored of [true, false]) {
-    const re = (s) => new RegExp(anchored ? `^(${s})` : `(${s})`).test(n);
+    /* Case-INSENSITIVE for words: "Overdrive" does not contain "Drive", it
+     * contains "drive", and a case-sensitive pass filed every legacy overdrive
+     * under "Other FX".
+     *
+     * Case-SENSITIVE for acronyms, via re.exact: upper-case "EQ" matches the
+     * "eq" inside "FrequencyShifter" when folded, which filed a legacy
+     * frequency shifter under EQ/Filter/Wah. Acronyms are always upper case in
+     * these ids, so they do not need folding. */
+    const mk = (s, flags) => new RegExp(anchored ? `^(${s})` : `(${s})`, flags);
+    const re = (s) => mk(s, 'i').test(n);
+    re.exact = (s) => mk(s, '').test(n);
     if (re('Dist|Drive|Fuzz|Boost|Screamer')) return 'Drives & Distortion';
     if (re('Delay|Echo')) return 'Delay';
     if (re('Reverb|Spring|Plate|Room|Hall|Tank|Ambience|Shimmer|Bloom')) return 'Reverb';
     if (re('Chorus|Phaser|Flanger|Tremolo|Rotary|Vibrato|Vibe|Mod|Reel|RingMod')) return 'Modulation';
-    if (re('EQ|Filter|Wah|CaliQ|Parametric|Tilt')) return 'EQ, Filter & Wah';
+    if (re.exact('EQ|CaliQ') || re('Filter|Wah|Parametric|Tilt')) return 'EQ, Filter & Wah';
     if (re('Comp|Gate|Limit|Squeeze')) return 'Dynamics';
     if (re('Pitch|Poly|Synth|Harmon|Octav')) return 'Pitch & Synth';
     if (re('Vol|Pan')) return 'Volume & Pan';
   }
+  // Last resort: a legacy model's SOURCE DEVICE names its family, even when the
+  // model name does not. FM4Seeker is a filter because FM4 is the Filter Modeler.
+  const mk = markerOf(model);
+  if (mk && MARKER[mk]) return MARKER[mk];
   return 'Other FX';
 };
 
