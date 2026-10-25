@@ -294,8 +294,9 @@ Same physical amp, adjacent in the menu, nothing shared to derive from.
 Two separate traps, and both make a "which models do I have?" report wrong in the
 quiet direction — it says *missing* when you hold the model.
 
-**The id is not the display name.** Nine confirmed cases share no text with the
-menu entry: "3 OSC Synth" is `HD2_SynthSubtractiveStereo`, "Bleat Chop Trem" is
+**The id is not the display name.** Ten confirmed cases share no text with the
+menu entry: "3 OSC Synth" is `HD2_SynthSubtractiveStereo`, "Dynamic Hall" is
+`VIC_ReverbRotatingStereo`, "Bleat Chop Trem" is
 `HD2_TremoloPatternStereo`, "Tesselator" is `VIC_DelayStutterEditStereo`, "Poly
 Detune" is `L6SPB_PolyChorus`. The id tends to name the mechanism and the menu
 the feel — a pattern you can notice and cannot extrapolate.

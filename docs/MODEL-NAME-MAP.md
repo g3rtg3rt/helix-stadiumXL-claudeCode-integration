@@ -23,6 +23,7 @@ missing model that was in fact already in hand.
 | Bleat Chop Trem | `HD2_TremoloPatternStereo` | set difference against a 9-model request |
 | Double Take | `HD2_DelayDoubleDoubleStereo` | set difference against the same request |
 | Hot Springs | `HD2_ReverbHxSpringStereo` | block position + `Drip`/`Dwell`/`Spring Count` |
+| Dynamic Hall | `VIC_ReverbRotatingStereo` | block position + the Dynamic family's parameter signature |
 
 The pattern, where there is one: **the id names the mechanism and the menu names
 the feel.** A step-sequenced tremolo is `TremoloPattern` on disk and "Bleat Chop
@@ -39,31 +40,46 @@ Ranked by how much it proves:
    and export. The ids come back in `b00`…`b27` order, so slot *n* is request
    *n*. This is the only method that proves a mapping rather than suggesting one,
    and it costs nothing — just place them in order.
-2. **A distinctive parameter.** `Detune` on a detuner, `Spring Count` on a spring
-   reverb. Strong, but a family can share parameters.
-3. **Elimination.** If a preset holds *k* models and *k−1* map by name, the last
+2. **A family parameter signature.** Parameters that appear on one family and
+   nowhere else place a model even when its id does not. `BassBoost` + `BassFreq`
+   + `Damping` occur on exactly four models in a 318-model corpus, all four in
+   the Dynamic reverb group; no other reverb has any of them.
+3. **A distinctive single parameter.** `Detune` on a detuner, `Spring Count` on a
+   spring reverb. Suggestive, but one parameter can be shared more widely than
+   you think.
+4. **Elimination.** If a preset holds *k* models and *k−1* map by name, the last
    one is the last request. Only valid when you can rule out extra blocks the
-   file might contain for other reasons — a preset that also carries a bonus
-   model breaks it.
-4. **Semantic resemblance.** Weakest. `HxSpring` ↔ "Hot Springs" happens to be
-   right; `Rotating` ↔ "Dynamic Hall" is not (see below).
+   file might hold for other reasons — a preset that also carries a bonus model
+   breaks it, and they often do.
+5. **Naming convention.** Weakest of all, and the one most likely to feel
+   convincing. See below.
 
-## A case where resemblance was wrong
+## Do not let a naming convention overrule position
 
-`VIC_ReverbRotatingStereo` sat in the slot where "Dynamic Hall" was requested,
-which by method 1 should have settled it. It is a different model:
+`VIC_ReverbRotatingStereo` arrived in the slot where "Dynamic Hall" was
+requested, and was then rejected on the grounds that the Dynamic reverb family is
+consistently `VIC_…Dyn…` — `VIC_DynPlate`, `VIC_ReverbDynRoom`,
+`VIC_ReverbDynAmbience`, `VIC_ReverbDynBloom` — while `Rotating` carries no
+`Dyn`. The conclusion was wrong. It is Dynamic Hall, and the parameter signature
+says so plainly: `BassBoost` + `BassFreq` + `Damping` sit on the three `Dyn…`
+reverbs and on `Rotating`, and on no other reverb in the corpus. `Motion` is
+what a rotating reverb matrix would expose, which is the usual arrangement here —
+the id names the mechanism, the menu names the feel.
 
-- the Dynamic reverb family is consistently `VIC_ReverbDyn…` —
-  `VIC_DynPlate`, `VIC_ReverbDynRoom`, `VIC_ReverbDynAmbience`,
-  `VIC_ReverbDynBloom` — and `Rotating` carries no `Dyn`;
-- `Rotating` has a `Motion` parameter, which `VIC_ReverbShimmer` also has and no
-  `Dyn…` reverb does;
-- `Rotating` was already present in factory presets before the request.
+The mistake worth remembering is the shape of it: **a naming convention was used
+to overturn the one method that proves a mapping, in a format whose central
+lesson is that names are unreliable.** If the id and the position disagree,
+position wins unless a *parameter-level* fact contradicts it.
 
-So the slot held a mis-picked block, not a renamed one. **Method 1 proves a
-mapping only when the person placing the blocks found the model they were
-aiming for** — if they placed the wrong one, position faithfully records the
-wrong answer. Cross-check against the family's own naming before trusting it.
+Two weaker arguments also went into that wrong call, and neither was evidence:
+that the model already appeared in factory presets (a factory preset using
+Dynamic Hall is exactly what you would expect), and that one parameter, `Motion`,
+is shared with Shimmer (families overlap; that is why signature means a *set* of
+parameters, not one).
+
+Position does still fail when the person placing the blocks did not find the
+model they were aiming for — it faithfully records a mis-pick. Resolve that by
+checking the parameter signature, not the id's spelling.
 
 ## The official Model List goes stale
 

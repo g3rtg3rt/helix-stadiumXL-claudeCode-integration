@@ -258,7 +258,7 @@ family token cannot be assumed to sit at the start of what remains after
 stripping. Anything matching `^(HD2_|HX2_|VIC_|P35_|Agoura_)` will skip models
 without saying so. `tools/mine-catalogue.js` has a `stem()` worth copying.
 
-Separately: **the id is not the menu name.** Nine confirmed cases share no text
+Separately: **the id is not the menu name.** Ten confirmed cases share no text
 at all with the display name — see `docs/MODEL-NAME-MAP.md`, which also covers
 how to establish a mapping that holds.
 
