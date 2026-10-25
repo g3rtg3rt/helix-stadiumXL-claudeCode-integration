@@ -122,6 +122,44 @@ that breaks up when you turn it up and goes limp when you turn it down.
 `Hype` and `Level` appear on every Agoura amp and no HD2 amp; `ChVol` the
 reverse. Either one tells you which family you are holding.
 
+### The whole Agoura-vs-HX difference, measured
+
+`ChVol` / `Level` is one line of a clean structural split. Over 30 Agoura amps
+and 22 HX/legacy amps in one corpus:
+
+| parameter | Agoura (30) | HX/legacy (22) |
+|---|---|---|
+| `ChVol` | **0** | **22 — all** |
+| `Level` | **29** | **0** |
+| `Bias` | **0** | 18 |
+| `BiasX` | **0** | 18 |
+| `Hum` | **0** | 12 |
+| `CabIdx` | 17 | 0 |
+| `ZPrePost` | 26 | 0 |
+| `Ripple` / `Sag` | 29 / 29 | 16 / 19 |
+
+So an **Agoura amp is the HX tone and gain section plus an integrated cab and
+impedance model**, with the bias trim and the hum control removed and the channel
+volume renamed. Worked through on the one documented relative pair —
+`HD2_AmpLine6Litigator` (12 parameters) against `Agoura_AmpLine6Prosecutor` (22),
+which Line 6 describes as "inspired by Litigator" — the eight shared parameters
+are `Bass`, `Drive`, `Master`, `Mid`, `Presence`, `Ripple`, `Sag`, `Treble`; the
+Agoura side adds the ten `AmpCab*` parameters plus `CabIdx`, `ZPrePost`, `Hype`
+and `Level`.
+
+This tells you which parameters **exist**, which is the part that faults the unit
+if you get it wrong. It does not give you values, and "inspired by" is not the
+same amp, so there is no controlled pair here.
+
+**Both apparent exceptions are spelling, not structure** — which is the usual
+answer in this format:
+
+- **Who Watt 103** is the one Agoura amp without `Level`. It spells the same
+  control `"Output Volume"`, with a space. See section 11.
+- The impedance parameter is `ZPrePost` on 26 Agoura amps, **`PrePost`** on Cali
+  2C+ and US Drip Bass, **`XPrePost`** on Revv Ch4 Red, and **absent entirely**
+  on Agua 751 — which also carries no `Ripple` and no `Sag`.
+
 ## 7. Snapshot names: 10 characters
 
 Hard device limit. 560 corpus names, none longer; factory names are visibly
@@ -316,7 +354,7 @@ four more amps to the sample did not add a fourth.
 Two separate traps, and both make a "which models do I have?" report wrong in the
 quiet direction — it says *missing* when you hold the model.
 
-**The id is not the display name.** Ten confirmed cases share no text with the
+**The id is not the display name.** Eleven confirmed cases share no text with the
 menu entry: "3 OSC Synth" is `HD2_SynthSubtractiveStereo`, "Dynamic Hall" is
 `VIC_ReverbRotatingStereo`, "Bleat Chop Trem" is
 `HD2_TremoloPatternStereo`, "Tesselator" is `VIC_DelayStutterEditStereo`, "Poly

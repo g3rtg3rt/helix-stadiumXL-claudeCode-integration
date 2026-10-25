@@ -24,6 +24,7 @@ missing model that was in fact already in hand.
 | Double Take | `HD2_DelayDoubleDoubleStereo` | set difference against the same request |
 | Hot Springs | `HD2_ReverbHxSpringStereo` | block position + `Drip`/`Dwell`/`Spring Count` |
 | Dynamic Hall | `VIC_ReverbRotatingStereo` | block position + the Dynamic family's parameter signature |
+| Bighorn Fuzz | `HD2_DistRamsHeadMono` | block position; the official list's `basedOn` names the circuit |
 
 The pattern, where there is one: **the id names the mechanism and the menu names
 the feel.** A step-sequenced tremolo is `TremoloPattern` on disk and "Bleat Chop
@@ -80,6 +81,24 @@ parameters, not one).
 Position does still fail when the person placing the blocks did not find the
 model they were aiming for — it faithfully records a mis-pick. Resolve that by
 checking the parameter signature, not the id's spelling.
+
+## `basedOn` is a hint for you, not a second matcher
+
+The Model List carries a "based on" column naming the original gear, and
+sometimes the model id is built from *that* rather than from the menu name.
+"Bighorn Fuzz" is `HD2_DistRamsHeadMono`, and the list says it is based on a
+"'73 Electro-Harmonix Ram's Head Big Muff Pi". So when a name match fails, read
+that row's `basedOn` and look for a distinctive proper noun.
+
+**Do not automate it.** Matching ids against `basedOn` tokens was measured over
+491 rows: 240 match by name, and a token pass on `basedOn` claims 92 more, of
+which most are wrong — "lead", "clean", "crunch", "super", "deluxe", "twin" and
+even "with" all match unrelated ids. It produces false positives faster than
+real matches, which is worse than not running it, because a false *match* reads
+as success while a false *miss* at least prompts a look.
+
+Proper nouns work (Ram's Head, Revv, Omega, GSG100); descriptive words do not.
+That distinction is easy for a person reading one row and unreliable as a rule.
 
 ## The official Model List goes stale
 
