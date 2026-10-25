@@ -619,12 +619,12 @@ firmware has never seen.
 
 **That caveat is now settled, and the inference held.** It was recorded as an
 inference because nine presets cannot contain every amp. Re-measured across a
-114-export corpus spanning both firmwares, split by `device_version`:
+113-export corpus spanning both firmwares, split by `device_version`:
 
 | firmware | Agoura amp blocks with `CabIdx` | without |
 |---|---|---|
-| 1.3.2.1340 (57 files) | **0** | 71 |
-| 1.4.1.1343 (18 files) | **39** | **0** |
+| 1.3.2.1340 (56 files) | **0** | 70 |
+| 1.4.1.1343 (31 files) | **39** | **0** |
 
 Perfectly clean, with no exception either way, and `CabIdx` appears on no
 non-Agoura model anywhere in the corpus. So it really is a parameter 1.4 added to
