@@ -39,12 +39,41 @@ function load(file) {
   return JSON.parse(buf.subarray(8).toString('utf8'));
 }
 
-const listHsp = (dir) =>
-  fs.readdirSync(dir).filter((f) => f.toLowerCase().endsWith('.hsp')).map((f) => path.join(dir, f));
+/* Walk SUBDIRECTORIES too. A flat readdirSync silently skips a corpus kept in
+ * folders -- per firmware, per device, per session -- with no warning that
+ * anything was left out: a model present only in a subfolder reads as UNKNOWN,
+ * and learned ranges come from a fraction of the evidence. mine-catalogue.js
+ * had exactly this bug. */
+const listHsp = (dir, out = []) => {
+  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, e.name);
+    if (e.isDirectory()) listHsp(p, out);
+    else if (e.name.toLowerCase().endsWith('.hsp')) out.push(p);
+  }
+  return out;
+};
 
 /* Parameters that only some corpus instances of a model carry -- typically
  * added by a firmware update. Collected and summarised once instead of
  * reported against every block that predates them. */
+const EXPECTED_FW = require('../lib/builders.js').DEVICE_VERSION;
+/* every firmware the reference corpus actually contains */
+const corpusFw = new Set();
+const fwName = (n) =>
+  `${n >>> 28}.${(n >>> 24) & 15}.${(n >>> 16) & 255}.${n & 0xffff}`;
+
+/* A param is firmware-gated when every firmware carrying it is strictly newer
+ * than every firmware that does not. Returns the gate, or null. Reported with
+ * its evidence rather than silently applied: a rule induced from one corpus is
+ * only as general as that corpus. */
+const firmwareGated = (name) => {
+  const e = fwSeen.get(name);
+  if (!e || !e.with.size || !e.without.size) return null;
+  const lo = Math.max(...e.without), hi = Math.min(...e.with);
+  return hi > lo ? { gate: hi, below: lo, n: e.with.size, m: e.without.size } : null;
+};
+const gatedSeen = new Map();
+
 const optional = new Set();
 
 /* ---- build reference schema ---- */
@@ -57,7 +86,17 @@ const schema = {
   counts: new Map(),
 };
 
+/* param name -> { with: Set(firmware), without: Set(firmware) }. A param a
+ * firmware update ADDED looks identical to one the builders invented unless
+ * you record which firmware each instance came from. */
+const fwSeen = new Map();
+const fwNote = (name, fw, has) => {
+  if (!fwSeen.has(name)) fwSeen.set(name, { with: new Set(), without: new Set() });
+  fwSeen.get(name)[has ? 'with' : 'without'].add(fw);
+};
+
 function learn(preset) {
+  const fw = preset.meta.device_version;
   for (const flow of preset.preset.flow) {
     for (const [id, b] of Object.entries(flow)) {
       if (id === '@enabled') continue;
@@ -71,6 +110,10 @@ function learn(preset) {
         c.seen++;
         keys.forEach((k) => c.params.set(k, (c.params.get(k) || 0) + 1));
         schema.types.set(slot.model, b.type);
+        /* absence matters as much as presence: a firmware-gated param is one
+         * that is always there above a version and never below it */
+        const have = new Set(keys);
+        for (const k of schema.models.get(slot.model)) fwNote(k, fw, have.has(k));
       }
     }
   }
@@ -80,11 +123,23 @@ function learn(preset) {
 const problems = [];
 const note = (f, msg) => problems.push(`${path.basename(f)}: ${msg}`);
 
-function check(file) {
+function check(file, isRef = false) {
   const p = load(file); // throws on bad magic / bad JSON
   const m = p.meta;
   if (m.device_id !== 2490368) note(file, `device_id ${m.device_id}`);
-  if (m.device_version !== 318899516) note(file, `device_version ${m.device_version}`);
+  /* A reference file was written BY the device, so whatever firmware it
+   * carries is legitimate by definition and flagging it says nothing about
+   * correctness. Only a generated file can carry the wrong stamp. */
+  if (isRef) corpusFw.add(m.device_version);
+  /* The firmware the builders stamp, taken from lib/builders.js so it cannot
+   * go stale. This was a hardcoded 318899516 (1.3.2.1340), which meant every
+   * preset on a newer firmware -- generated AND device-written -- was reported
+   * as a problem, and the report drowned in notices about the current
+   * firmware being current. */
+  if (!isRef && m.device_version !== EXPECTED_FW) {
+    note(file, `device_version ${m.device_version} (${fwName(m.device_version)})`
+      + ` -- builders stamp ${EXPECTED_FW} (${fwName(EXPECTED_FW)})`);
+  }
 
   const snaps = p.preset.snapshots;
   if (snaps.length !== 8) note(file, `snapshots length ${snaps.length}`);
@@ -128,6 +183,11 @@ function check(file) {
         const cnt = schema.counts.get(slot.model) || { seen: 0, params: new Map() };
         for (const k of got) {
           if (ref.has(k)) continue;
+          /* not an error if a firmware update introduced it and this file is
+           * stamped at or above that firmware -- the model simply has no copy
+           * on the newer firmware in this corpus */
+          const g = firmwareGated(k);
+          if (g && p.meta.device_version >= g.gate) { gatedSeen.set(k, g); continue; }
           note(file, `flow${fi} ${id} ${slot.model}: extra param "${k}" `
             + `(never seen on this model; it appears ${cnt.seen}x in the corpus)`);
         }
@@ -223,7 +283,7 @@ const corpus = require('../lib/corpus.js');
 if (refDir && !genDir) { genDir = refDir; refDir = corpus.dir(); }
 if (!refDir) refDir = corpus.dir();
 if (!fs.existsSync(refDir) ||
-    fs.readdirSync(refDir).filter((f) => f.toLowerCase().endsWith('.hsp')).length === 0) {
+    listHsp(refDir).length === 0) {
   console.error(corpus.explain('no reference presets found, so there is nothing to check against.'));
   process.exit(1);
 }
@@ -236,15 +296,28 @@ console.log(`Reference schema from ${refs.length} export(s): ${schema.models.siz
 console.log('-- reference files (self-check) --');
 for (const f of refs) {
   const before = problems.length;
-  const r = check(f);
+  const r = check(f, true);
   console.log(`  ${path.basename(f).padEnd(28)} ${String(r.blocks).padStart(3)} blocks, ${r.validCount} snapshots  ${problems.length === before ? 'OK' : 'ISSUES'}`);
 }
+
+console.log(`  firmware(s) in the reference corpus: `
+  + [...corpusFw].sort().map((v) => fwName(v)).join(', '));
 
 console.log('\n-- generated files --');
 for (const f of listHsp(genDir)) {
   const before = problems.length;
   const r = check(f);
   console.log(`  ${path.basename(f).padEnd(28)} ${String(r.blocks).padStart(3)} blocks, ${r.validCount} snapshots  ${problems.length === before ? 'OK' : 'ISSUES'}`);
+}
+
+if (gatedSeen.size) {
+  console.log(`\n${gatedSeen.size} firmware-gated parameter(s) -- present on every corpus`);
+  console.log('instance at or above the firmware shown and on none below it, so a');
+  console.log('generated file stamped that high is right to carry them:');
+  for (const [k, g] of [...gatedSeen].sort()) {
+    console.log(`  . ${k}: from ${fwName(g.gate)} (with it on ${g.n} firmware(s),`
+      + ` without on ${g.m}, newest without = ${fwName(g.below)})`);
+  }
 }
 
 if (optional.size) {
