@@ -407,6 +407,31 @@ If you organise a corpus into subfolders, check that every tool reading it
 recurses. The symptom is a model you know you exported being absent from a
 report, which reads as an export problem rather than a tool one.
 
+**This advice sat here for weeks while only `mine-catalogue.js` followed it.**
+Every other tool kept its flat `readdirSync`, and on a 113-file corpus split
+across two per-firmware subfolders they all reported on the 75 top-level files
+and said nothing about the other 38. What that cost, measured:
+
+- `validate-presets.js` reported **two models as UNKNOWN** that were in the
+  corpus all along, because they appear only in a subfolder. Point it at the
+  subfolder instead and the error moves to three *other* models. A genuine typo
+  in a model id and a corpus blind spot produce the identical message.
+- `check-ranges.js` learned its envelope from 2494 model/param pairs instead of
+  3667, so a third of the "outside observed range" warnings were noise.
+- `check-structure.js` compared against 33 scopes either way, so that one was
+  unaffected — which is the point: nothing told you which tools were degraded.
+- Worst of the set, `lib/device-json.js` learns the **float-vs-int rule** with
+  its own listing. That is the rule whose failure mode is a watchdog restart,
+  and it was being learned from part of the evidence.
+
+All of them now recurse, with one deliberate exception. **`check-firmware-delta.js`
+must not**: it keys presets by filename to compare the same preset across two
+firmwares, so recursing would collide a top-level name with the same name in a
+subfolder — and if you pass a new-export directory that sits *inside* your
+corpus, the identical files appear on both sides, every comparison matches, and
+it reports "no change" having compared a firmware against itself. It now refuses
+that invocation rather than answering it.
+
 The same function then needed three more rounds, each from a model id that had not
 existed in the corpus when the previous round was written. Worth listing, because
 each is a different way to get id parsing wrong:

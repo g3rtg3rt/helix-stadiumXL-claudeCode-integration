@@ -42,7 +42,19 @@ const fs = require('fs');
 const path = require('path');
 
 const load = (f) => JSON.parse(fs.readFileSync(f).subarray(8).toString('utf8'));
-const listHsp = (d) => fs.readdirSync(d).filter((f) => f.toLowerCase().endsWith('.hsp')).map((f) => path.join(d, f));
+/* Walk SUBDIRECTORIES too. A flat readdirSync silently skips a corpus kept in
+ * folders -- per firmware, per device, per session -- with no warning that
+ * anything was left out: a model present only in a subfolder reads as UNKNOWN,
+ * and learned ranges come from a fraction of the evidence. mine-catalogue.js
+ * had exactly this bug. */
+const listHsp = (d, out = []) => {
+  for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+    const p = path.join(d, e.name);
+    if (e.isDirectory()) listHsp(p, out);
+    else if (e.name.toLowerCase().endsWith('.hsp')) out.push(p);
+  }
+  return out;
+};
 
 let [corpusDir, genDir] = process.argv.slice(2);
 const corpus = require('../lib/corpus.js');
@@ -51,7 +63,7 @@ const corpus = require('../lib/corpus.js');
 if (corpusDir && !genDir) { genDir = corpusDir; corpusDir = corpus.dir(); }
 if (!corpusDir) corpusDir = corpus.dir();
 if (!fs.existsSync(corpusDir) ||
-    fs.readdirSync(corpusDir).filter((f) => f.toLowerCase().endsWith('.hsp')).length === 0) {
+    listHsp(corpusDir).length === 0) {
   console.error(corpus.explain('no reference presets found, so there is nothing to check against.'));
   process.exit(1);
 }

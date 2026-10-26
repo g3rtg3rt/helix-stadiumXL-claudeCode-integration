@@ -40,8 +40,20 @@ const read = (f) => {
   if (b.slice(0, 8).toString('latin1') !== MAGIC) throw new Error(`${f}: bad magic`);
   return JSON.parse(b.slice(8).toString('utf8'));
 };
-const hsp = (d) => fs.existsSync(d)
-  ? fs.readdirSync(d).filter((f) => f.endsWith('.hsp')).map((f) => path.join(d, f)) : [];
+/* Walk SUBDIRECTORIES too. A flat readdirSync silently skips a corpus kept in
+ * folders -- per firmware, per device, per session -- with no warning that
+ * anything was left out: a model present only in a subfolder reads as UNKNOWN,
+ * and learned ranges come from a fraction of the evidence. mine-catalogue.js
+ * had exactly this bug. */
+const walkHsp = (d, out = []) => {
+  for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+    const p = path.join(d, e.name);
+    if (e.isDirectory()) walkHsp(p, out);
+    else if (e.name.toLowerCase().endsWith('.hsp')) out.push(p);
+  }
+  return out;
+};
+const hsp = (d) => (fs.existsSync(d) ? walkHsp(d) : []);
 
 /* ---- model classification -------------------------------------------------
  * "All Amp, Preamp, Poly effects, and Clone blocks are mono-only, so any

@@ -58,6 +58,10 @@ for (const [label, d] of [['new', NEW], ['old', OLD]]) {
 
 const load = (dir) => {
   const out = new Map();
+  /* Flat on purpose, unlike the other tools here. This one keys presets by
+   * FILENAME so it can compare the SAME preset across two firmwares, so
+   * recursing would collide a top-level name with the same name in a
+   * subfolder. See the guard near the top for the related trap. */
   for (const f of fs.readdirSync(dir).filter((x) => x.toLowerCase().endsWith('.hsp'))) {
     const raw = fs.readFileSync(path.join(dir, f));
     if (raw.subarray(0, 8).toString('ascii') !== MAGIC) continue;

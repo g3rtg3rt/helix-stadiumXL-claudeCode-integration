@@ -49,9 +49,20 @@ if (!target) { console.error('usage: node fix-snapshot-coverage.js <file.hsp|dir
 const FMT = corpus.numberFormat();
 const SKIP = new Set(['input', 'output']);
 
-const files = fs.statSync(target).isDirectory()
-  ? fs.readdirSync(target).filter((f) => f.toLowerCase().endsWith('.hsp')).map((f) => path.join(target, f))
-  : [target];
+/* Walk SUBDIRECTORIES too. A flat readdirSync silently skips a corpus kept in
+ * folders -- per firmware, per device, per session -- with no warning that
+ * anything was left out: a model present only in a subfolder reads as UNKNOWN,
+ * and learned ranges come from a fraction of the evidence. mine-catalogue.js
+ * had exactly this bug. */
+const listHsp = (d, out = []) => {
+  for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+    const p = path.join(d, e.name);
+    if (e.isDirectory()) listHsp(p, out);
+    else if (e.name.toLowerCase().endsWith('.hsp')) out.push(p);
+  }
+  return out;
+};
+const files = fs.statSync(target).isDirectory() ? listHsp(target) : [target];
 
 let totalChanged = 0;
 

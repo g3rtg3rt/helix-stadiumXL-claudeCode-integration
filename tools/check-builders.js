@@ -51,8 +51,21 @@ const INTENDED = {
 
 const deviceParams = new Map();
 const dir = process.argv[2] || require('../lib/corpus.js').dir();
-for (const f of fs.readdirSync(dir).filter((x) => x.endsWith('.hsp'))) {
-  const j = JSON.parse(fs.readFileSync(path.join(dir, f)).slice(8).toString('utf8'));
+/* Walk SUBDIRECTORIES too. A flat readdirSync silently skips a corpus kept in
+ * folders -- per firmware, per device, per session -- with no warning that
+ * anything was left out: a model present only in a subfolder reads as UNKNOWN,
+ * and learned ranges come from a fraction of the evidence. mine-catalogue.js
+ * had exactly this bug. */
+const listHsp = (d, out = []) => {
+  for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+    const p = path.join(d, e.name);
+    if (e.isDirectory()) listHsp(p, out);
+    else if (e.name.toLowerCase().endsWith('.hsp')) out.push(p);
+  }
+  return out;
+};
+for (const f of listHsp(dir)) {
+  const j = JSON.parse(fs.readFileSync(f).slice(8).toString('utf8'));
   for (const flow of j.preset.flow || []) {
     for (const blk of Object.values(flow)) {
       if (!blk || !blk.slot) continue;
