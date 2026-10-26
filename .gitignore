@@ -7,6 +7,10 @@ corpus/*
 # Build output
 out/
 
+# Downloaded copy of the vendor model list, used by tools/model-lookup.js.
+# It is Line 6's page, and it goes stale; fetch your own.
+.cache/
+
 # Editors / OS
 node_modules/
 .DS_Store

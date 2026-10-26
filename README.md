@@ -63,6 +63,7 @@ cd helix-stadiumXL-claudeCode-integration
 
 # export your own presets from HX Edit into corpus/   <- required, see SETUP.md
 node tools/mine-catalogue.js                           # catalogue for YOUR device
+node tools/model-lookup.js fuzz face                   # which model IS a Fuzz Face?
 node examples/build-examples.js out                    # three example patches
 node tools/validate-presets.js corpus out              # check them
 node tools/check-rules.js corpus out                   # and the device's own rules
@@ -97,9 +98,10 @@ yours — `corpus/` is gitignored.
 | **[docs/PATCH-DESIGN.md](docs/PATCH-DESIGN.md)** | making a patch that works *musically*: the mono-block trap, level architecture, why your pickup changes the voicing |
 | **[docs/MODEL-CATALOGUE.md](docs/MODEL-CATALOGUE.md)** | 376 models with observed parameter ranges. Regenerate for your own device |
 | **[docs/MODEL-NAME-MAP.md](docs/MODEL-NAME-MAP.md)** | why the menu name is not the model id, the thirteen confirmed mismatches, and how to establish a mapping that holds |
+| **[docs/GEAR-RESEARCH.md](docs/GEAR-RESEARCH.md)** | building a patch for a **named song**: find the documented rig, map it through Line 6's own "Based on" column, and record the substitutions. Model names mislead — "Ballistic Fuzz" is not a Fuzz Face |
 | **[CLAUDE.md](CLAUDE.md)** | the operating manual Claude Code reads automatically |
 | `lib/` | the builders (81 exports, 17 amps), the device-safe JSON writer, the corpus resolver |
-| `tools/` | five validators, a device round-trip diff, a **firmware delta check**, the catalogue miner, a snapshot-coverage fixer |
+| `tools/` | five validators, a device round-trip diff, a **firmware delta check**, the catalogue miner, a snapshot-coverage fixer, and a **model lookup** that answers "what hardware is this model based on?" from Line 6's published list |
 | `examples/` | three patches that have been played on hardware, each teaching a different thing |
 
 ### The examples, in reading order

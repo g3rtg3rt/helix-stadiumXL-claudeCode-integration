@@ -571,7 +571,23 @@ Running exactly that check across nine re-exported presets found:
   under 1.4 — almost certainly the release notes' improved per-block DSP
   reporting. It appeared on all 18 blocks of six freshly built presets and on
   **none** of the 111 migrated effect blocks in the corpus, which run fine
-  without it. So it is optional, and this toolkit does not write it. Note that
+  without it. So it is optional, and this toolkit does not write it.
+
+  Confirmed later at corpus scale, and worth the stronger statement: across
+  113 exports, fx blocks carry it **0 of 619 times on 1.3.2** and **137 of 359
+  on 1.4.1** — so it did arrive with 1.4 — but **seven models appear both with
+  and without it on the same firmware** (`TremoloPatternStereo`,
+  `PolyDowntune`, `ScriptModPhaseStereo`, `ReverbHxSpringStereo`,
+  `PitchDualPitchStereo`, `TremoloTremoloStereo`, `ReverbRotatingStereo`).
+  A field that varies within one model on one firmware is per-block state, not
+  structure. Contrast `CabIdx`, which is **39 of 39** on Agoura amps in 1.4.x
+  exports and 0 below: that one is structural, and a builder targeting 1.4
+  should emit it even for a model whose only corpus copy predates the update.
+
+  The method generalises: splitting the corpus by firmware is necessary but not
+  sufficient. Also ask whether a *single model* appears both ways *within* one
+  firmware. That is what separates "the update added this" from "whatever the
+  last person toggled". Note that
   the first version of the delta check did not find this at all: it compared
   preset, block and slot key sets and never looked inside `harness`. It does
   now.
