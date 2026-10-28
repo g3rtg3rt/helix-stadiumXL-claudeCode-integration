@@ -39,7 +39,7 @@ const fs = require('fs');
 const path = require('path');
 
 const {
-  enabled, block, inputInst, inputNone, outputMatrix, outputPath2, gate, comp,
+  enabled, assertSnapsReached, block, inputInst, inputNone, outputMatrix, outputPath2, gate, comp,
   scream808, minotaur, eqParam, chorus, simpleDelay, roomVerb, cab, ampEssex,
   ampBritPlexi, ampRevvRed, pingPong, ampJazzRivet, grayFlanger, trinityChorus, eqParamStereo, dynPlate,
   splitY, join, preset, mkFlow, emptyFlow2, write,
@@ -54,23 +54,32 @@ function plexiCrunch() {
   const tsOn   = [false, false, true,  false];
   const dlyOn  = [true,  true,  true,  false];
 
+  /* The amp's per-snapshot values, NAMED rather than written inline. A factory
+   * accepts and silently ignores an option it does not support, so this object
+   * is the only record of what was asked for -- which makes it something you
+   * can check the built block against. See docs/GOTCHAS.md section 21 for the
+   * patch that shipped with a frozen EQ band because nothing did. */
+  const AMP = {
+    en: enabled(true, [true, true, true, true]),
+    normDrv:  0.30, normDrvSnaps:  [0.30, 0.30, 0.38, 0.20],
+    brightDrv:0.48, brightDrvSnaps:[0.48, 0.48, 0.58, 0.26],
+    bass:     0.32, bassSnaps:     [0.32, 0.32, 0.34, 0.40],
+    mid:      0.78, midSnaps:      [0.78, 0.78, 0.82, 0.70],
+    treble:   0.59, trebleSnaps:   [0.59, 0.59, 0.56, 0.54],
+    presence: 0.66, presenceSnaps: [0.66, 0.66, 0.62, 0.58],
+    level:   -7.0,  levelSnaps:    [-7.0, -7.0, -5.2, -6.4],
+    channel:  2,    channelSnaps:  [2, 2, 2, 0],
+  };
+  // Channel 2 jumps the Normal and Bright inputs -- the hot-rodded Plexi.
+  // Snapshot 4 drops to Channel 0 (Normal only) for the cleaner sound.
+  const ampPlexi = ampBritPlexi(0, 6, { block: 'b07', flow: 0 }, AMP);
+  assertSnapsReached(ampPlexi, AMP, 'Example Single Amp: ampBritPlexi');
+
   const blocks = [
     inputInst(0, { threshold: -62.0, decay: 0.03 }),
     minotaur(2, enabled(false, minoOn, 16843008), { gain: 0.18, tone: 0.55, level: 0.80 }),
     scream808(3, enabled(false, tsOn, 16843009), { gain: 0.0, tone: 0.62, level: 0.80 }),
-    // Channel 2 jumps the Normal and Bright inputs -- the hot-rodded Plexi.
-    // Snapshot 4 drops to Channel 0 (Normal only) for the cleaner sound.
-    ampBritPlexi(0, 6, { block: 'b07', flow: 0 }, {
-      en: enabled(true, [true, true, true, true]),
-      normDrv:  0.30, normDrvSnaps:  [0.30, 0.30, 0.38, 0.20],
-      brightDrv:0.48, brightDrvSnaps:[0.48, 0.48, 0.58, 0.26],
-      bass:     0.32, bassSnaps:     [0.32, 0.32, 0.34, 0.40],
-      mid:      0.78, midSnaps:      [0.78, 0.78, 0.82, 0.70],
-      treble:   0.59, trebleSnaps:   [0.59, 0.59, 0.56, 0.54],
-      presence: 0.66, presenceSnaps: [0.66, 0.66, 0.62, 0.58],
-      level:   -7.0,  levelSnaps:    [-7.0, -7.0, -5.2, -6.4],
-      channel:  2,    channelSnaps:  [2, 2, 2, 0],
-    }),
+    ampPlexi,
     cab(0, 7, '4x121960AT75', { block: 'b06', flow: 0 },
       { en: enabled(true, [true, true, true, true]), distance: 3.0, highCut: 9500.0, lowCut: 90.0 }),
     simpleDelay(9, enabled(true, dlyOn, 16843010),

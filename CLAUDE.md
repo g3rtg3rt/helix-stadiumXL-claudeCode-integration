@@ -89,6 +89,8 @@ node examples/build-examples.js out          # or your own builder
 node tools/validate-presets.js corpus out    # schema conformance
 node tools/check-structure.js corpus out     # structural conventions
 node tools/check-ranges.js corpus out        # value sanity, switch/enum bugs
+node tools/check-reproducible.js             # is the shipped .hsp still what the
+                                             #   builder writes? both drift directions
 node tools/roundtrip-diff.js out/Patch.hsp reexported/Patch.hsp
                                              # did the device KEEP it?
 ```
@@ -103,6 +105,10 @@ rather than a false pass on your output.
    more than most tone requests do — see `docs/PATCH-DESIGN.md`.
 2. Find a comparable amp in the corpus and copy its gain staging.
 3. Build it, validate it, and report what the validators actually said.
+   A validator passing does not mean the patch does what you intended: a
+   builder ignores an option it does not support and the file is still valid.
+   Name the per-snapshot options and call `assertSnapsReached` on the built
+   block — GOTCHAS.md section 21.
 4. Say plainly which values are founded in the corpus and which are your
    judgement. The user cannot tell by looking, and will be playing it on stage.
 

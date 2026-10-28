@@ -481,7 +481,89 @@ And legacy compressors are all two parameters that each name the second one
 differently: `Level`+`Sustain`, `Level`+`Amount`, `Level`+`Thresh`. Same shape,
 three names — see section 11.
 
-## 21. Windows-specific, if you are working there
+## 21. A builder ignores an option it does not know, and says nothing
+
+Every factory in `lib/builders.js` takes a free-form options object, so a
+mistyped or unsupported option is accepted and dropped. `v(o.x ?? d)` with no
+second argument writes a static value; nothing in the file records that a
+`xSnaps` was offered and refused. The preset is perfectly valid, so
+`validate-presets`, `check-structure` and `check-ranges` all pass it.
+
+**How it actually bit.** A patch moved from the Mark IV (`ampCaliIV`) to the
+Mark IIC+ (`ampCali2CPlus`) and kept its options. Section 11 covers why the
+option names stop matching — the two models spell the same graphic-EQ bands
+differently — but the consequence is the point here:
+
+| | Mark IV | Mark IIC+ |
+|---|---|---|
+| band names | `'80Hz'` `'240Hz'` `'750Hz'` `'2200Hz'` `'6600Hz'` | `'80 Hz'` `'240 Hz'` `'750 Hz'` `'2_2 KHz'` `'6_6 KHz'` |
+| took snapshot arrays | yes | **no** |
+
+The 750 Hz scoop was then frozen at one value across all five snapshots while
+the builder's comments *and* the preset's own on-device info text both said it
+moved per snapshot. What that sounded like, played: three snapshots that should
+have been a tight scooped riff, a darker verse and a full chorus were separated
+by nothing but a drive knob, and the player's report was that they "are quite
+similar" — which is a tone complaint, not a bug report. **This class of defect
+arrives as taste feedback.**
+
+**Two defences, and you want both.**
+
+*Make snapshot support the default.* Pass `o.<name>Snaps` as the second
+argument of every `v()` in every factory. It is additive — with no `*Snaps`
+passed, the second argument is `undefined` and the output is byte-identical,
+which is worth proving rather than assuming: 149 calls across 38 factories
+changed here, and 22 presets plus 3 examples rebuilt byte-for-byte. The device
+agrees that this is general. Across a 113-file corpus, **111 distinct
+parameters appear carrying a `snapshots` array** — including EQ band gains,
+`LowCut`, `HighCut`, `Sag` and `Hype` — so there is no per-parameter whitelist
+to respect. Deliberate exceptions here: `splitY`'s balances and `join`'s pans
+and levels, because moving those per snapshot slides the stereo image and
+fights the level architecture in PATCH-DESIGN.md.
+
+*Then check the output.* `assertSnapsReached(block, opts, label)` throws if a
+`*Snaps` option did not land:
+
+```js
+const AMP = { leadDriveSnaps: [...], eq750Snaps: [...] };   // name it
+const blk = ampCali2CPlus(0, 5, null, AMP);
+assertSnapsReached(blk, AMP, 'my patch amp');               // then prove it
+```
+
+It matches by **value, not by name** — the option is `eq750Snaps` and the
+parameter is `'750 Hz'`, and the mapping between them is exactly what gets
+lost. Matches are consumed, so two options carrying the same array need two
+parameters moving; an identical array cannot mask a dropped option.
+
+Checking the output is the only reliable test, because a dropped option leaves
+no trace at the input. The same reasoning is why `check-reproducible.js` exists
+— see section 22.
+
+## 22. Nothing checks that a shipped preset still matches its builder
+
+Every other check reads a `.hsp` and asks whether it is well formed. None of
+them asks whether the file you are about to load is still what its build script
+produces today. It drifts both ways: a builder gains a parameter and the file is
+left behind, or a file is hand-edited and the builder never hears about it.
+Neither leaves a trace, because the stale file is valid.
+
+`tools/check-reproducible.js` rebuilds and byte-compares. The first time it ran
+on a 22-preset set, **8 did not match**:
+
+- seven carried `"CabIdx": -1.0` where the device writes a bare `-1` (39/39 in
+  the corpus) — a stale number format from before the corpus was read
+  recursively, section 19. The builders were right and the files were old.
+- the eighth had a **footswitch assignment in the file that its builder never
+  wrote**: the volume block's bypass sat on the toe switch in the shipped
+  preset, and the script passed no source at all. It had never once reproduced
+  the preset it claims to build, and the mismatch was in the first commit.
+
+Both directions are in that one result, which is why the tool reports a
+difference rather than picking a winner. A drifted file is either stale, in
+which case keep the rebuild, or it holds something the builder does not write,
+in which case the **builder** is what needs fixing.
+
+## 23. Windows-specific, if you are working there
 
 - **Clone with LF.** Git for Windows sets `core.autocrlf=true` in its *system*
   config, so a default clone rewrites shell scripts to CRLF and they then fail

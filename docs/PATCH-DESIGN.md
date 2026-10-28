@@ -214,6 +214,13 @@ may fill them in:
   from somewhere else.
 - Changing a solo boost means changing it in **every** snapshot that has one.
   Two solo variants drift apart otherwise.
+- **Prove the per-snapshot values actually landed.** A factory silently ignores
+  an option it does not support, so a control you believe moves can be frozen
+  at one value with nothing to show it -- the file is valid and the comments
+  still claim it moves. Name the options object and call
+  `assertSnapsReached(block, opts, label)` on the built block. The failure mode
+  reaches you as "these snapshots sound quite similar", which is slow and
+  expensive feedback; see GOTCHAS.md section 21.
 
 ## Two cabs, panned apart
 

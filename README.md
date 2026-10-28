@@ -67,6 +67,7 @@ node tools/model-lookup.js fuzz face                   # which model IS a Fuzz F
 node examples/build-examples.js out                    # three example patches
 node tools/validate-presets.js corpus out              # check them
 node tools/check-rules.js corpus out                   # and the device's own rules
+node tools/check-reproducible.js                       # do the files still match the builder?
 
 claude                                                 # and you're working
 ```
