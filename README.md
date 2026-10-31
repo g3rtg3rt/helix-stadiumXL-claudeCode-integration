@@ -87,6 +87,15 @@ So the writer never guesses. It learns the correct format per model+parameter
 from presets **your device wrote**. That also means the toolkit adapts to your
 device and firmware instead of being pinned to someone else's.
 
+That per-model rule has one blind spot, and it is worth knowing before a
+firmware update rather than after: a parameter the device has never exported **on
+a given model** is unknown even when every other model agrees about it. A new
+parameter therefore splits your corpus into models that have it and models that
+do not, and the rule silently stops applying to the second group. The writer
+falls back to what the parameter name does on other models — unanimously, across
+at least three of them — and keeps the float default for anything less certain.
+[GOTCHAS 1a](docs/GOTCHAS.md) has the case that found it.
+
 Factory presets are Line 6's content and are not redistributed here. Yours stay
 yours — `corpus/` is gitignored.
 

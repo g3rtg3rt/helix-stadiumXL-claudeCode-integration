@@ -26,6 +26,49 @@ precision).
 
 This is also why a corpus is mandatory rather than convenient.
 
+### 1a. ...and the learner has a blind spot: a model the corpus predates
+
+Learning the format per **model + parameter** is right, and it means a parameter
+the device has never exported *on that model* is unknown even when every other
+model agrees about it. The fallback for unknown was float, and that is wrong for
+any integer field on any model your corpus only holds older exports of.
+
+Not hypothetical. `CabIdx` arrived in firmware **1.4.1**. The corpus carries it
+on 17 amp models, **39 times, always as a bare `-1`, never once as a float** --
+while six amp models had only ever been exported *before* 1.4.1 and so carried
+no observation of it at all. Those six fell through to float and wrote
+`"CabIdx": -1.0` into **twelve shipped presets**: an int-typed index handed a
+float, which is the exact failure this writer exists to prevent. A second
+instance was hiding behind it -- `SyncSelect1`, a tempo-sync division index, on
+the Courtesan Flange.
+
+Nothing caught it. `validate-presets` compares against models the corpus *has*,
+`check-structure` looks at shape, `check-ranges` at values, and
+`check-reproducible` only asks whether the file matches the builder -- and it
+did, because the builder and the file were wrong in the same way.
+
+The fix is a **cross-model consensus fallback**: when `MODEL|PARAM` is unknown,
+ask what that parameter name does on other models. Guarded, because a rule
+induced from a corpus is only as general as the corpus:
+
+- every observation must agree -- one dissent and the parameter is per-model
+- at least 3 distinct models, and at least 8 observations in total
+
+`Attack` is why the guard is needed: a float in milliseconds on eight
+compressor models, a bare int on two drive pedals where it is a switch
+position. Nine other parameters split the same way, and 337 more are unanimous
+but too thin to generalise from. Everything that fails the tests keeps the float
+default, so the rule can only **add** knowledge, never overturn it.
+
+Measured when introduced: of 23 presets, 12 changed, **one line each**, and
+nothing else in any file moved.
+
+The transferable part is not about `CabIdx`. **A firmware update that adds a
+parameter splits your corpus into models that have it and models that do not,
+and a per-model rule silently stops applying to the second group.** After an
+update the question is not only "are there new models" but "which of my existing
+models now have a parameter I hold no example of".
+
 ## 2. An unknown model id does not error — the block vanishes
 
 Invent a model id and the firmware silently drops that block on import. No
