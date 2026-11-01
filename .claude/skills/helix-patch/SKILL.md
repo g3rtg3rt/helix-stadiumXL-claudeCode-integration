@@ -42,12 +42,13 @@ produce a safe file without it, and that is not a limitation to work around.
    invisible until the block is engaged.
 5. **Snapshot names: 10 characters**, named for what they do in the song.
 
-## Validating — all four, and read the output
+## Validating — all of them, and read the output
 
 ```bash
 node tools/validate-presets.js corpus out   # schema conformance
 node tools/check-structure.js  corpus out   # structural conventions
 node tools/check-ranges.js     corpus out   # value sanity; catches switch/enum bugs
+node tools/check-snaps.js      out          # can every parameter move per snapshot?
 ```
 
 And when a patch matters, the one check that proves the device kept it — import

@@ -560,9 +560,18 @@ changed here, and 22 presets plus 3 examples rebuilt byte-for-byte. The device
 agrees that this is general. Across a 113-file corpus, **111 distinct
 parameters appear carrying a `snapshots` array** — including EQ band gains,
 `LowCut`, `HighCut`, `Sag` and `Hype` — so there is no per-parameter whitelist
-to respect. Deliberate exceptions here: `splitY`'s balances and `join`'s pans
-and levels, because moving those per snapshot slides the stereo image and
-fights the level architecture in PATCH-DESIGN.md.
+to respect.
+
+There is exactly one real exception, and it is the device's: **input blocks hold
+no per-snapshot state.** 0 of 231 input parameters in that corpus carry a
+`snapshots` array, 129 of them `InputInst1` — so the input's own noise gate
+cannot be made per-snapshot in place, and a patch that needs per-snapshot
+gating needs a `gate()` block. `splitY`'s balances and `join`'s pans and levels
+were held back here too, on the grounds that moving them slides the stereo
+image. That is a rule about how to **voice** a patch (PATCH-DESIGN.md), not
+about what the block can store, and the amps could always move their Level
+anyway — so withholding the capability enforced nothing and only hid which
+blocks were deliberate. They take `*Snaps` now.
 
 *Then check the output.* `assertSnapsReached(block, opts, label)` throws if a
 `*Snaps` option did not land:
@@ -581,6 +590,54 @@ parameters moving; an identical array cannot mask a dropped option.
 Checking the output is the only reliable test, because a dropped option leaves
 no trace at the input. The same reasoning is why `check-reproducible.js` exists
 — see section 22.
+
+### 21a. ...and the sweep that fixed it could not see a third of the factories
+
+The defence above was applied as a sweep over `v(o.x ?? d)` call sites. It was
+blind to every factory that does not read its options that way, and said nothing
+about them — so **eleven options on eight factories stayed frozen** while the
+section above claimed they were fixed:
+
+| How the factory reads its options | What the sweep saw |
+|---|---|
+| `v(o.x ?? d)` — 38 factories | rewritten, as documented |
+| `(pos, en, { x = d } = {})` — destructured | **invisible**: `gate`, `comp`, `scream808`, `minotaur`, `dm4Comp`, `polyDowntune`, `volPedal` |
+| `const d = { ...DEFAULTS[name], ...o }` then `v(d.x)` | **invisible**: `cab`, all six options |
+
+A destructured argument is a worse failure than the one in section 21, because
+it is not ignored: `{ threshold = -59.6 }` accepts the value and drops only the
+snapshot array, so the patch is right in every respect except the one that was
+asked for. And nothing could catch it — every check here asks whether what was
+written is correct, and a parameter that **cannot** move writes a perfectly
+correct static value. `assertSnapsReached` only fires when a builder asks for a
+snapshot array, so it can never fire for an option nobody is able to pass.
+
+`tools/check-snaps.js` asks the question the other way round, of the source
+rather than the output. For every block factory, an option that sets a parameter
+must also read its `Snaps` sibling, or be named in a `FROZEN` table with its
+reason. **That table of exceptions is the real deliverable**: it is the
+difference between a frozen parameter and a forgotten one, and it is the thing a
+sweep cannot write for you.
+
+Two things to copy if you write your own:
+
+- **Resolve aliases.** The first version knew only `o.x`, reported `cab()` as
+  having a single option and said nothing about the six that could not move. A
+  lint with its own blind spot is worse than no lint, because it reads as a
+  pass. `cab()` was then rewritten to read `o.x ?? d.x` rather than merge the
+  two, so its options are visible in the source as well as settable.
+- **Strip comments first.** A comment inside `cab()` mentioning `o.x` came back
+  as an option named `x`.
+
+The companion rule is about typing rather than capability. A snapshot array is
+learned as `MODEL|PARAM|snapshots`, separately from `MODEL|PARAM|value` (section
+1a), so a parameter whose value the corpus has observed and whose snapshots it
+has not falls through to the float default **on the array alone** — half the
+parameter typed from evidence, half of it guessed, which is how an int-typed
+field acquires a decimal point. Measured across a 113-preset corpus: 500
+parameters carry both a value and a snapshot array, and **0** render the two
+differently. Rule 2 of `check-snaps.js` holds every parameter you write to that,
+including the ones nobody has snapshotted yet.
 
 ## 22. Nothing checks that a shipped preset still matches its builder
 

@@ -67,6 +67,7 @@ node tools/model-lookup.js fuzz face                   # which model IS a Fuzz F
 node examples/build-examples.js out                    # three example patches
 node tools/validate-presets.js corpus out              # check them
 node tools/check-rules.js corpus out                   # and the device's own rules
+node tools/check-snaps.js out                          # can every parameter move per snapshot?
 node tools/check-reproducible.js                       # do the files still match the builder?
 
 claude                                                 # and you're working
@@ -96,6 +97,14 @@ falls back to what the parameter name does on other models — unanimously, acro
 at least three of them — and keeps the float default for anything less certain.
 [GOTCHAS 1a](docs/GOTCHAS.md) has the case that found it.
 
+The same split reaches one level further down, because a parameter's snapshot
+array is learned separately from its value: a parameter whose value the corpus
+has seen and whose snapshots it has not gets the float default **on the array
+alone**. `tools/check-snaps.js` holds every parameter you write to that rule,
+and also checks the thing a sweep cannot — that a factory option which sets a
+parameter can actually move it per snapshot. [GOTCHAS 21a](docs/GOTCHAS.md) has
+the eleven options that could not.
+
 Factory presets are Line 6's content and are not redistributed here. Yours stay
 yours — `corpus/` is gitignored.
 
@@ -111,7 +120,7 @@ yours — `corpus/` is gitignored.
 | **[docs/GEAR-RESEARCH.md](docs/GEAR-RESEARCH.md)** | building a patch for a **named song**: find the documented rig, map it through Line 6's own "Based on" column, and record the substitutions. Model names mislead — "Ballistic Fuzz" is not a Fuzz Face |
 | **[CLAUDE.md](CLAUDE.md)** | the operating manual Claude Code reads automatically |
 | `lib/` | the builders (81 exports, 17 amps), the device-safe JSON writer, the corpus resolver |
-| `tools/` | five validators, a device round-trip diff, a **firmware delta check**, the catalogue miner, a snapshot-coverage fixer, and a **model lookup** that answers "what hardware is this model based on?" from Line 6's published list |
+| `tools/` | the validators (schema, structure, ranges, device rules, builder match, per-snapshot capability), a device round-trip diff, a **firmware delta check**, the catalogue miner, a snapshot-coverage fixer, and a **model lookup** that answers "what hardware is this model based on?" from Line 6's published list |
 | `examples/` | three patches that have been played on hardware, each teaching a different thing |
 
 ### The examples, in reading order

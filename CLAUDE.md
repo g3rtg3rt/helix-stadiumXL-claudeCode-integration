@@ -89,6 +89,9 @@ node examples/build-examples.js out          # or your own builder
 node tools/validate-presets.js corpus out    # schema conformance
 node tools/check-structure.js corpus out     # structural conventions
 node tools/check-ranges.js corpus out        # value sanity, switch/enum bugs
+node tools/check-snaps.js out                # can every parameter move per snapshot,
+                                             #   and is its snapshot array typed like
+                                             #   its value? see GOTCHAS 21a
 node tools/check-reproducible.js             # is the shipped .hsp still what the
                                              #   builder writes? both drift directions
 node tools/roundtrip-diff.js out/Patch.hsp reexported/Patch.hsp
