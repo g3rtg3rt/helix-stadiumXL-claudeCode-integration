@@ -131,6 +131,47 @@ The payoff: one number per snapshot, and all your patches work the same way —
 which matters when you are editing on the unit at rehearsal rather than at a
 desk.
 
+## Set the amp trim from the amp, never from another patch
+
+The amp `Level` is the one trim that decides whether a patch is loud enough at
+all, and there are two tempting ways to choose it that are both wrong:
+
+- **from the model's observed range in the corpus.** The range tells you what
+  the parameter accepts, not what this amp at this drive needs.
+- **from what another patch in your set uses.** This is the one that bites. A
+  cranked high-gain preamp generates enormous level and needs a big negative
+  trim — around `-15 dB` is normal for one. A clean amp at `Drive 3.8`
+  generates very little and may want a POSITIVE trim. Copy the first number
+  onto the second amp and the patch is 14 dB short.
+
+Three patches built that way measured `-20 dBFS` peaks at the speakers while
+being played hard. Nothing flagged it, because every value was individually
+inside its observed range.
+
+**What does not work: normalising the set.** It is tempting to sum each preset's
+static trim (amp + cab + gain block + output) and bring every patch to the same
+total. Two measurements say no:
+
+- A set levelled **by ear** on real speakers read `-15.6`, `-11.6`, `-7.3`
+  and `+2.0` on that sum — the same spread as the patches that were far too
+  quiet. The sum does not predict loudness, because it cannot see the amp's own
+  gain.
+- **Line 6's own factory presets show no compensation curve to copy.** Across
+  the 81 that carry an amp block, the median static trim per drive bin runs
+  `-4.5` to `-19.3` with no trend against drive — the least-squares slope is
+  slightly positive — and single bins span 34 dB.
+
+**What does work** is comparing one amp MODEL's trim across the patches that use
+it. Four instances of one Plexi agreeing inside 1.2 dB, one of them in a patch
+levelled by ear, is strong evidence; a fifth sitting 7 dB away is the outlier,
+and the four are right. `tools/report-levels.js` prints that grouping and
+flags same-model spread. After that it is ears — there is no number in the file
+that substitutes for playing it.
+
+One arithmetic trap when you do sum trims: **hard-panned legs are parallel, so
+they average, not add.** Summing two cabs at +6 dB reports +12 and overstates
+the patch by 6 dB.
+
 ## Level alone cannot make a hard-played part sit back
 
 If someone digs in on a verse, a level cut scales the transients down too and

@@ -663,6 +663,31 @@ difference rather than picking a winner. A drifted file is either stale, in
 which case keep the rebuild, or it holds something the builder does not write,
 in which case the **builder** is what needs fixing.
 
+## 24. A verifier that takes a hand-written list does not verify the list
+
+`check-reproducible.js` held an array of the builders to run. A new builder was
+added without being added to that array, and the run reported *"all 28 presets
+are byte-identical to what their builders write"* while covering 27: a preset
+that nothing rewrote is identical to itself, so a before/after hash comparison
+**cannot see** it. Unchanged is not the same as verified.
+
+Three changes, and the second is the general one:
+
+1. Builders are **discovered** from the directory instead of listed.
+2. A preset that no builder wrote is reported as `UNBUILT` and fails, which
+   catches the same gap from the other end — including the case where discovery
+   itself misses something. Hand-edited presets go in `NEVER_BUILT` with a
+   reason, so the exception is declared rather than silent.
+3. The summary line counts what was **verified**, not how many files were
+   looked at. The first version of that count said "all 28" while 8 of them
+   were declared hand-edited and had been skipped.
+
+Discovery has one sharp edge worth knowing: the script now *executes* what it
+finds. The first run duly executed a cloud-sync conflict copy of a builder — a
+weeks-old snapshot — which overwrote 19 generated files with stale output. Any
+glob that feeds an `execFileSync` needs the same conflict-copy filter the file
+walkers already have.
+
 ## 23. Windows-specific, if you are working there
 
 - **Clone with LF.** Git for Windows sets `core.autocrlf=true` in its *system*

@@ -69,6 +69,7 @@ node tools/validate-presets.js corpus out              # check them
 node tools/check-rules.js corpus out                   # and the device's own rules
 node tools/check-snaps.js out                          # can every parameter move per snapshot?
 node tools/check-reproducible.js                       # do the files still match the builder?
+node tools/report-levels.js out                        # where does each patch's level come from?
 
 claude                                                 # and you're working
 ```
@@ -120,7 +121,7 @@ yours — `corpus/` is gitignored.
 | **[docs/GEAR-RESEARCH.md](docs/GEAR-RESEARCH.md)** | building a patch for a **named song**: find the documented rig, map it through Line 6's own "Based on" column, and record the substitutions. Model names mislead — "Ballistic Fuzz" is not a Fuzz Face |
 | **[CLAUDE.md](CLAUDE.md)** | the operating manual Claude Code reads automatically |
 | `lib/` | the builders (81 exports, 17 amps), the device-safe JSON writer, the corpus resolver |
-| `tools/` | the validators (schema, structure, ranges, device rules, builder match, per-snapshot capability), a device round-trip diff, a **firmware delta check**, the catalogue miner, a snapshot-coverage fixer, and a **model lookup** that answers "what hardware is this model based on?" from Line 6's published list |
+| `tools/` | the validators (schema, structure, ranges, device rules, builder match, per-snapshot capability), a device round-trip diff, a **firmware delta check**, the catalogue miner, a snapshot-coverage fixer, a **model lookup** that answers "what hardware is this model based on?" from Line 6's published list, and a **level report** that shows where each patch's level comes from and flags patches whose amp trim is far from others on the same model |
 | `examples/` | three patches that have been played on hardware, each teaching a different thing |
 
 ### The examples, in reading order

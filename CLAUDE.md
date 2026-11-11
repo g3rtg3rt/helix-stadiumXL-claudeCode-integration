@@ -94,6 +94,8 @@ node tools/check-snaps.js out                # can every parameter move per snap
                                              #   its value? see GOTCHAS 21a
 node tools/check-reproducible.js             # is the shipped .hsp still what the
                                              #   builder writes? both drift directions
+node tools/report-levels.js out             # where does each patch's level come from?
+                                            # NOT a loudness measure - see PATCH-DESIGN.md
 node tools/roundtrip-diff.js out/Patch.hsp reexported/Patch.hsp
                                              # did the device KEEP it?
 ```
